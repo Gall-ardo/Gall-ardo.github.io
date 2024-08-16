@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Halil Arda Özongun</title>
+    <link>http://Gall-ardo.github.io/</link>
+    <description>Recent content on Halil Arda Özongun</description>
+    <generator>Hugo</generator>
+    <language>en</language>
+    <atom:link href="http://Gall-ardo.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title></title>
+      <link>http://Gall-ardo.github.io/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://Gall-ardo.github.io/about/</guid>
+      <description>About Me&#xD;Link to heading&#xD;Hello, I&amp;rsquo;m Halil Arda Özongun, a passionate Computer Science student at Bilkent University with a minor in Mathematics. My interests lie in deep learning, competitive programming, and software development. I am currently working under Erkut Erdem on improving image quality in low light using deep learning algorithms and have a strong foundation in algorithms and programming.&#xA;Through this website, I aim to share my projects, thoughts, and experiences in the tech world.</description>
+    </item>
+    <item>
+      <title></title>
+      <link>http://Gall-ardo.github.io/contact/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://Gall-ardo.github.io/contact/</guid>
+      <description>Contact Me&#xD;Link to heading&#xD;I&amp;rsquo;d love to hear from you! Whether you have questions, collaboration ideas, or just want to say hi, feel free to reach out.&#xA;Email: arda.ozongun@ug.bilkent.edu.tr&#xA;Email: halilardaozongun@gmail.com&#xA;LinkedIn: Halil Arda Özongun&#xA;X: Halil Arda Özongun&#xA;Location: Ankara, Turkey</description>
+    </item>
+    <item>
+      <title></title>
+      <link>http://Gall-ardo.github.io/projects/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://Gall-ardo.github.io/projects/</guid>
+      <description>Projects&#xD;Link to heading&#xD;Here are some of the projects I&amp;rsquo;ve worked on recently:&#xA;Bilkent Connect&#xD;Link to heading&#xD;Technologies Used: Java, Android Studio, Firebase, Jsoup&#xA;Developed a social media app for Bilkent University students with features for posts, sales, and meal ratings.&#xA;UART Hardware Communication Protocol&#xD;Link to heading&#xD;Technologies Used: SystemVerilog, FPGA&#xA;Implemented a UART module for asynchronous serial communication between FPGA boards.&#xA;Offerings Scraper&#xD;Link to heading&#xD;Technologies Used: Python, Selenium, Docker, AWS</description>
+    </item>
+  </channel>
+</rss>
