@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Halil Arda Ozongun</title>
+    <link>https://gall-ardo.github.io/</link>
+    <description>Recent content on Halil Arda Ozongun</description>
+    <generator>Hugo</generator>
+    <language>en</language>
+    <atom:link href="https://gall-ardo.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title></title>
+      <link>https://gall-ardo.github.io/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gall-ardo.github.io/about/</guid>
+      <description>&lt;h1 id=&#34;about-me&#34;&gt;&#xD;&#xA;  About Me&#xD;&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#about-me&#34;&gt;&#xD;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xD;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xD;&#xA;  &lt;/a&gt;&#xD;&#xA;&lt;/h1&gt;&#xD;&#xA;&lt;p&gt;Hello, I&amp;rsquo;m Halil Arda Özongun, a passionate Computer Science student at Bilkent University with a minor in Mathematics. My interests are deep learning, competitive programming and the mathematics underneath. I am currently working under &lt;a href=&#34;https://www.cs.bilkent.edu.tr/~adundar/&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Asst. Prof. Ayşegül Dündar&lt;/a&gt; in the &lt;a href=&#34;https://dlr.bilkent.edu.tr/&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;DLR Lab&lt;/a&gt; on single-stage diffusion models and &lt;a href=&#34;https://web.cs.hacettepe.edu.tr/~erkut/&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Erkut Erdem&lt;/a&gt; on improving image quality in low light using deep learning algorithms.&lt;/p&gt;&#xA;&lt;p&gt;Through this website, I aim to share my projects, thoughts, and experiences in the tech world.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title></title>
+      <link>https://gall-ardo.github.io/contact/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gall-ardo.github.io/contact/</guid>
+      <description>&lt;h1 id=&#34;contact-me&#34;&gt;&#xD;&#xA;  Contact Me&#xD;&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#contact-me&#34;&gt;&#xD;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xD;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xD;&#xA;  &lt;/a&gt;&#xD;&#xA;&lt;/h1&gt;&#xD;&#xA;&lt;p&gt;I&amp;rsquo;d love to hear from you! Whether you have questions, collaboration ideas, or just want to say hi, feel free to reach out.&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;Email:&lt;/strong&gt; &lt;a href=&#34;mailto:arda.ozongun@ug.bilkent.edu.tr&#34; &gt;arda.ozongun@ug.bilkent.edu.tr&lt;/a&gt;&lt;br&gt;&#xA;&lt;strong&gt;Email:&lt;/strong&gt; &lt;a href=&#34;mailto:halilardaozongun@gmail.com&#34; &gt;halilardaozongun@gmail.com&lt;/a&gt;&lt;br&gt;&#xA;&lt;strong&gt;LinkedIn:&lt;/strong&gt; &lt;a href=&#34;https://www.linkedin.com/in/halil-arda-%c3%b6zongun-74b590209/&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Halil Arda Özongun&lt;/a&gt;&lt;br&gt;&#xA;&lt;strong&gt;X:&lt;/strong&gt; &lt;a href=&#34;https://x.com/HOzongun&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Halil Arda Özongun&lt;/a&gt;&lt;br&gt;&#xA;&lt;strong&gt;Location:&lt;/strong&gt; Ankara, Turkey&lt;/p&gt;&#xA;&lt;hr&gt;</description>
+    </item>
+    <item>
+      <title></title>
+      <link>https://gall-ardo.github.io/projects/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gall-ardo.github.io/projects/</guid>
+      <description>&lt;h1 id=&#34;projects&#34;&gt;&#xD;&#xA;  Projects&#xD;&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#projects&#34;&gt;&#xD;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xD;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xD;&#xA;  &lt;/a&gt;&#xD;&#xA;&lt;/h1&gt;&#xD;&#xA;&lt;p&gt;Here are some of the recent projects I’ve been working on:&lt;/p&gt;&#xA;&lt;h2 id=&#34;bilkent-connecthttpsgithubcomgall-ardobilkent-connect&#34;&gt;&#xD;&#xA;  &lt;a href=&#34;https://github.com/Gall-ardo/Bilkent-Connect&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Bilkent Connect&lt;/a&gt;&#xD;&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#bilkent-connecthttpsgithubcomgall-ardobilkent-connect&#34;&gt;&#xD;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xD;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xD;&#xA;  &lt;/a&gt;&#xD;&#xA;&lt;/h2&gt;&#xD;&#xA;&lt;p&gt;A social media application featuring anonymous posts, second-hand marketplace, and cafeteria ratings. Firebase was used for data storage, and Jsoup was integrated for web scraping.&lt;/p&gt;&#xA;&lt;h2 id=&#34;uart-hardware-communication-protocolhttpsgithubcomgall-ardouart-design-systemverilog&#34;&gt;&#xD;&#xA;  &lt;a href=&#34;https://github.com/Gall-ardo/UART-Design-SystemVerilog&#34;  class=&#34;external-link&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;UART Hardware Communication Protocol&lt;/a&gt;&#xD;&#xA;  &lt;a class=&#34;heading-link&#34; href=&#34;#uart-hardware-communication-protocolhttpsgithubcomgall-ardouart-design-systemverilog&#34;&gt;&#xD;&#xA;    &lt;i class=&#34;fa-solid fa-link&#34; aria-hidden=&#34;true&#34; title=&#34;Link to heading&#34;&gt;&lt;/i&gt;&#xD;&#xA;    &lt;span class=&#34;sr-only&#34;&gt;Link to heading&lt;/span&gt;&#xD;&#xA;  &lt;/a&gt;&#xD;&#xA;&lt;/h2&gt;&#xD;&#xA;&lt;p&gt;Designed and implemented a UART module for asynchronous serial communication between FPGA boards.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
