@@ -1,4 +1,4 @@
-baseURL = "http://Gall-ardo.github.io/"
+baseURL = "https://gall-ardo.github.io"
 title = "Halil Arda Ozongun"
 theme = "hugo-coder"
 languageCode = "en"
