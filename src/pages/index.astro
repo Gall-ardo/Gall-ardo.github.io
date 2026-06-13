@@ -68,7 +68,7 @@ import { education } from '../data/education';
             <div class="project">
               <div class="project-name">{p.name}</div>
               <div class="project-desc">{p.description}</div>
-              <div class="project-tags">{p.tags.join(' · ')}</div>
+              <div class="project-tags">{p.tags.map((t) => <span class="project-tag">{t}</span>)}</div>
             </div>
           ))
         }
