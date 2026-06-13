@@ -1,0 +1,27 @@
+---
+interface Item {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  items: Item[];
+  className?: string;
+}
+
+const { items, className = 'socials' } = Astro.props;
+---
+
+<div class={className}>
+  {
+    items.map((item) => (
+      <a
+        href={item.href}
+        target={item.href.startsWith('http') ? '_blank' : undefined}
+        rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+      >
+        {item.label}
+      </a>
+    ))
+  }
+</div>

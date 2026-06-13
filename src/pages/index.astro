@@ -1,0 +1,89 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Section from '../components/Section.astro';
+import LinkList from '../components/LinkList.astro';
+import { site } from '../data/site';
+import { research } from '../data/research';
+import { projects } from '../data/projects';
+import { experience } from '../data/experience';
+import { education } from '../data/education';
+---
+
+<Layout>
+  <Nav />
+
+  <main>
+    <section class="hero wrap surface" data-photo="square-side">
+      <img class="hero-avatar" src={site.avatar} alt={site.name} width="120" height="120" />
+      <div class="hero-text">
+        <p class="role">{site.title}</p>
+        <h1>{site.heading}</h1>
+        {site.bio.map((para) => <p>{para}</p>)}
+        <LinkList items={site.socials} />
+      </div>
+    </section>
+
+    <Section id="experience" heading="Experience">
+      <div class="exp-list">
+        {
+          experience.map((e) => (
+            <div class="exp-item">
+              <div class="exp-org">{e.org}</div>
+              <div class="exp-meta">
+                {e.role} · {e.period}
+                {e.advisor && <> · Advisor: {e.advisor}</>}
+              </div>
+              <div class="exp-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    <Section id="education" heading="Education">
+      <div class="exp-list">
+        {
+          education.map((e) => (
+            <div class="exp-item">
+              <div class="exp-org">{e.institution}</div>
+              <div class="exp-meta">{e.degree} · {e.period}</div>
+              {e.description && <div class="exp-desc">{e.description}</div>}
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    <Section id="research" heading="Research">
+      <ul class="list-compact">
+        {research.map((item) => <li>{item}</li>)}
+      </ul>
+    </Section>
+
+    <Section id="work" heading="Projects">
+      <div class="projects">
+        {
+          projects.map((p) => (
+            <div class="project">
+              <div class="project-name">{p.name}</div>
+              <div class="project-desc">{p.description}</div>
+              <div class="project-tags">{p.tags.join(' · ')}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    <Section id="contact" heading="Contact">
+      <div class="contact">
+        <p>{site.contactBlurb}</p>
+        <LinkList items={site.socials} />
+      </div>
+    </Section>
+  </main>
+
+  <footer>
+    <div class="wrap">© {new Date().getFullYear()} {site.name}</div>
+  </footer>
+</Layout>
