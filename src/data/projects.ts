@@ -9,31 +9,37 @@ export const projects: Project[] = [
   {
     name: 'CanvasPilot',
     description: 'AI-powered canvas automation and visual workflow tool.',
-    tags: ['AI tools', 'automation', 'web'],
+    tags: ['React', 'FastAPI', 'PostgreSQL', 'AWS', 'Docker'],
+    href: 'https://github.com/Gall-ardo/CanvasPilot',
   },
   {
     name: 'Jobsy',
     description: 'Job application and automation platform.',
-    tags: ['automation', 'full-stack', 'productivity'],
+    tags: ['Python', 'TypeScript', 'React', 'Docker'],
+    href: 'https://github.com/Gall-ardo/Jobsy',
   },
   {
     name: 'ProctorHub',
     description: 'Exam monitoring and proctoring-related system.',
-    tags: ['computer vision', 'web', 'monitoring'],
+    tags: ['React.js', 'Node.js', 'Express', 'MySQL'],
+    href: 'https://github.com/Gall-ardo/ProctorHub',
   },
   {
     name: 'Offerings Scraper',
     description: 'Course offering scraper and monitoring tool.',
-    tags: ['scraping', 'automation', 'data'],
+    tags: ['Python', 'Flask', 'Selenium', 'AWS'],
+    href: 'https://github.com/Gall-ardo/Offerings-Scraper',
   },
   {
     name: 'Bilkent Connect',
     description: 'University/community-related platform.',
-    tags: ['community', 'web', 'university'],
+    tags: ['Java', 'Android', 'Firebase', 'Jsoup'],
+    href: 'https://github.com/Gall-ardo/Bilkent-Connect',
   },
   {
     name: 'UART Project',
     description: 'Embedded/systems communication project.',
-    tags: ['embedded systems', 'UART', 'low-level'],
+    tags: ['SystemVerilog', 'FPGA'],
+    href: 'https://github.com/Gall-ardo/UART-Design-SystemVerilog',
   },
 ];

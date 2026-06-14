@@ -29,10 +29,13 @@ import { education } from '../data/education';
         {
           experience.map((e) => (
             <div class="exp-item">
-              <div class="exp-org">{e.org}</div>
+              <div class="exp-org">
+                {e.org}
+                <span class="exp-period">{e.period}</span>
+              </div>
               <div class="exp-meta">
-                {e.role} · {e.period}
-                {e.advisor && <> · Advisor: {e.advisor}</>}
+                <span class="exp-role">{e.role}</span>
+                {e.advisor && <span class="exp-advisor"> · Advisor: {e.advisor}</span>}
               </div>
               <div class="exp-desc">{e.description}</div>
             </div>
@@ -46,8 +49,11 @@ import { education } from '../data/education';
         {
           education.map((e) => (
             <div class="exp-item">
-              <div class="exp-org">{e.institution}</div>
-              <div class="exp-meta">{e.degree} · {e.period}</div>
+              <div class="exp-org">
+                {e.institution}
+                <span class="exp-period">{e.period}</span>
+              </div>
+              <div class="exp-meta">{e.degree}</div>
               {e.description && <div class="exp-desc">{e.description}</div>}
             </div>
           ))
@@ -70,15 +76,21 @@ import { education } from '../data/education';
       </div>
     </Section>
 
-    <Section id="work" heading="Projects">
+    <Section id="work" heading="Projects" headingHref="https://github.com/Gall-ardo?tab=repositories">
       <div class="projects">
         {
           projects.map((p) => (
-            <div class="project">
-              <div class="project-name">{p.name}</div>
-              <div class="project-desc">{p.description}</div>
-              <div class="project-tags">{p.tags.map((t) => <span class="project-tag">{t}</span>)}</div>
-            </div>
+            p.href
+              ? <a class="project" href={p.href} target="_blank" rel="noopener noreferrer">
+                  <div class="project-name">{p.name}</div>
+                  <div class="project-desc">{p.description}</div>
+                  <div class="project-tags">{p.tags.map((t) => <span class="project-tag">{t}</span>)}</div>
+                </a>
+              : <div class="project">
+                  <div class="project-name">{p.name}</div>
+                  <div class="project-desc">{p.description}</div>
+                  <div class="project-tags">{p.tags.map((t) => <span class="project-tag">{t}</span>)}</div>
+                </div>
           ))
         }
       </div>

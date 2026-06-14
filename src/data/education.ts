@@ -13,7 +13,7 @@ export const education: Education[] = [
   },
   {
     institution: 'Instituto Universitário de Lisboa',
-    degree: 'Computer Science',
-    period: 'Erasmus+ Exchange Program · September 2025 – January 2026',
+    degree: 'Erasmus+ Exchange — Computer Science',
+    period: 'Sep 2025 – Jan 2026',
   },
 ];

@@ -2,14 +2,18 @@
 interface Props {
   id?: string;
   heading: string;
+  headingHref?: string;
 }
 
-const { id, heading } = Astro.props;
+const { id, heading, headingHref } = Astro.props;
 ---
 
 <section class="section" id={id}>
   <div class="wrap surface">
-    <h2>{heading}</h2>
+    {headingHref
+      ? <h2><a href={headingHref} target="_blank" rel="noopener noreferrer" class="heading-link">{heading}</a></h2>
+      : <h2>{heading}</h2>
+    }
     <slot />
   </div>
 </section>

@@ -323,6 +323,9 @@ main {
   border: 1px solid var(--rule);
   border-radius: 12px;
   transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .project:hover {
@@ -359,6 +362,16 @@ main {
   border-radius: 999px;
   border: 1px solid var(--rule);
   color: var(--muted);
+}
+
+.heading-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.heading-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Experience timeline */
@@ -420,11 +433,30 @@ main {
 
 .exp-org {
   font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.exp-period {
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .exp-meta {
+  font-size: 0.88rem;
+}
+
+.exp-role {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.exp-advisor {
   color: var(--muted);
-  font-size: 0.85rem;
 }
 
 .exp-desc {
