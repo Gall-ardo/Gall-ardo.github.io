@@ -7,6 +7,10 @@
   --surface: rgba(247, 245, 240, 0.72);
   --particle-dot: rgba(26, 26, 26, 0.5);
   --particle-line: 26, 26, 26;
+  --mesh-1: #e9b8a3;
+  --mesh-2: #a8c0e0;
+  --mesh-3: #d8c79a;
+  --mesh-4: #c4b3d6;
   --max: 720px;
   --gutter: 1.5rem;
 }
@@ -20,6 +24,10 @@
   --surface: rgba(14, 15, 19, 0.62);
   --particle-dot: rgba(180, 200, 255, 0.55);
   --particle-line: 150, 175, 235;
+  --mesh-1: #2a3a66;
+  --mesh-2: #1f4d52;
+  --mesh-3: #4a2f5e;
+  --mesh-4: #25506e;
 }
 
 * {
