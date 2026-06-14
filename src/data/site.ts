@@ -1,7 +1,7 @@
 export const site = {
   name: 'Halil Arda Özongun',
   shortName: 'Halil Arda Özongun',
-  avatar: '/profile.svg',
+  avatar: '/profile.jpg',
   title: 'Computer Science Student',
   heading: 'AI/ML Researcher & Software Engineer',
   bio: [
