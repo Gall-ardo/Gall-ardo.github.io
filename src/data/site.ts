@@ -2,11 +2,11 @@ export const site = {
   name: 'Halil Arda Özongun',
   shortName: 'Halil Arda Özongun',
   avatar: '/profile.jpg',
-  title: 'Computer Science Student',
-  heading: 'AI/ML Researcher & Software Engineer',
+  title: 'Senior Computer Science Student',
+  heading: 'AI Researcher & Software Engineer',
   bio: [
-    'I am a Computer Science student at Bilkent University interested in generative deep learning, computer vision, diffusion models, 360-degree and panoramic video generation, low-light image enhancement, and AI-powered software tools.',
-    'My work sits between research and engineering: I like building practical systems while exploring generative models, visual understanding, and tools that make complex workflows simpler.',
+    'I am a senior Computer Science student at Bilkent University interested in multimodal large language models and interpretability.',
+    'My work sits between research and engineering: I like building practical systems while exploring how models perceive, reason, and represent the world.',
   ],
   contactBlurb:
     'Feel free to reach out for research, projects, or collaboration.',

@@ -7,22 +7,10 @@ export type Honor = {
 
 export const honors: Honor[] = [
   {
-    title: 'Bilkent University Comprehensive Scholarship',
-    org: 'Bilkent University',
-    year: '2022',
-    description: 'Awarded a full scholarship after placing 31st nationwide in the YKS university entrance exam, taken by approximately 3.2 million students.',
-  },
-  {
-    title: 'BuCode Algorithm Competition Finalist',
-    org: 'Boğaziçi University COMPEC',
-    year: '2024',
-    description: 'Finished in the top 15 out of 129 competing teams in one of Turkey\'s most competitive student algorithm contests.',
-  },
-  {
-    title: 'ALPOC Algorithm Competition Finalist',
-    org: 'Bilkent University ACM',
-    year: '2025',
-    description: 'Ranked 6th out of 158 teams in a national competitive programming contest.',
+    title: 'Career Days Hackathon Winner',
+    org: 'Dream Games',
+    year: '2026',
+    description: 'Placed 1st in the hackathon held at Dream Games Career Days, competing against students across Turkey.',
   },
   {
     title: 'HUPROG Programming Competition Finalist',
@@ -31,9 +19,21 @@ export const honors: Honor[] = [
     description: 'Placed 6th in an inter-university competitive programming contest hosted by Hacettepe University, competing against 150 teams.',
   },
   {
-    title: 'Career Days Hackathon Winner',
-    org: 'Dream Games',
-    year: '2026',
-    description: 'Placed 1st in the hackathon held at Dream Games Career Days, competing against students across Turkey.',
+    title: 'ALPOC Algorithm Competition Finalist',
+    org: 'Bilkent University ACM',
+    year: '2025',
+    description: 'Ranked 6th out of 158 teams in a national competitive programming contest.',
+  },
+  {
+    title: 'BuCode Algorithm Competition Finalist',
+    org: 'Boğaziçi University COMPEC',
+    year: '2024',
+    description: 'Finished in the top 15 out of 129 competing teams in one of Turkey\'s most competitive student algorithm contests.',
+  },
+  {
+    title: 'Bilkent University Comprehensive Scholarship',
+    org: 'Bilkent University',
+    year: '2022',
+    description: 'Awarded a full scholarship after placing 31st nationwide in the YKS university entrance exam, taken by approximately 3.2 million students.',
   },
 ];
