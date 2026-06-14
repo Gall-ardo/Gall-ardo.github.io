@@ -4,7 +4,7 @@ import Nav from '../components/Nav.astro';
 import Section from '../components/Section.astro';
 import LinkList from '../components/LinkList.astro';
 import { site } from '../data/site';
-import { honors, type Honor } from '../data/honors';
+import { honors } from '../data/honors';
 import { projects } from '../data/projects';
 import { experience } from '../data/experience';
 import { education } from '../data/education';
@@ -55,26 +55,7 @@ import { education } from '../data/education';
       </div>
     </Section>
 
-    {/* ── Honors C: Minimal ── */}
-    <Section id="honors-c" heading="Honors & Awards — C) Minimal">
-      <ul class="honors-minimal">
-        {honors.map((h) => (
-          <li class="honor-row">
-            <div class="honor-main">
-              <span class="honor-title">{h.title}</span>
-              <span class="honor-org">{h.org}</span>
-            </div>
-            <div class="honor-right">
-              {h.year && <span class="honor-year">{h.year}</span>}
-              <span class="honor-desc">{h.description}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Section>
-
-    {/* ── Honors D: Accent Blocks ── */}
-    <Section id="honors-d" heading="Honors & Awards — D) Accent Blocks">
+    <Section id="honors" heading="Honors & Awards">
       <div class="honors-blocks">
         {honors.map((h) => (
           <div class="honor-block">
