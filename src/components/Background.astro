@@ -1,10 +1,10 @@
 ---
 ---
 
-<canvas id="bg-canvas" aria-hidden="true"></canvas>
+<canvas id="bg-constellation" aria-hidden="true"></canvas>
 
 <style>
-  #bg-canvas {
+  #bg-constellation {
     position: fixed;
     inset: 0;
     width: 100%;
@@ -18,7 +18,7 @@
 <script>
   type Particle = { x: number; y: number; vx: number; vy: number };
 
-  const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement | null;
+  const canvas = document.getElementById('bg-constellation') as HTMLCanvasElement | null;
   if (canvas) {
     const ctx = canvas.getContext('2d')!;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

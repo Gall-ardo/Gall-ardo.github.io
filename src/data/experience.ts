@@ -16,23 +16,15 @@ export const experience: Experience[] = [
       'Working on mechanistic interpretability for unified vision-language models using Sparse Autoencoders.',
   },
   {
-    org: 'KUIS AI Center',
-    role: 'Deep Learning Research Intern',
-    period: 'May 2025 – Present',
-    advisor: 'Prof. Aykut Erdem, Prof. Erkut Erdem',
-    description:
-      'Working on diffusion-based 360° panoramic video generation.',
-  },
-  {
-    org: 'HUCVL — Hacettepe University Computer Vision Lab',
+    org: 'KUIS AI Center & HUCVL',
     role: 'Deep Learning Research Intern',
     period: 'July 2024 – Present',
     advisor: 'Prof. Aykut Erdem, Prof. Erkut Erdem',
     description:
-      'Researching low-light image enhancement using diffusion-based generative models.',
+      'Researching low-light image enhancement and diffusion-based 360° panoramic video generation.',
   },
   {
-    org: 'Generative Deep Learning Research Lab, Bilkent University',
+    org: 'DLR Lab — Bilkent University',
     role: 'Undergraduate Researcher',
     period: 'September 2024 – March 2025',
     advisor: 'Asst. Prof. Ayşegül Dündar',

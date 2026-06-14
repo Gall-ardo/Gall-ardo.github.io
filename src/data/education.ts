@@ -11,4 +11,9 @@ export const education: Education[] = [
     degree: 'B.S. in Computer Science',
     period: '2022 – 2027 (expected)',
   },
+  {
+    institution: 'Instituto Universitário de Lisboa',
+    degree: 'Computer Science',
+    period: 'Erasmus+ Exchange Program · September 2025 – January 2026',
+  },
 ];

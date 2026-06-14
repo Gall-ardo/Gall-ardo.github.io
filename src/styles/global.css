@@ -270,12 +270,19 @@ main {
 .socials a {
   display: inline-flex;
   align-items: center;
-  padding: 0.4rem 1rem;
+  justify-content: center;
+  padding: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border: 1px solid var(--rule);
   border-radius: 999px;
   color: var(--muted);
   background: transparent;
   transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.socials a svg {
+  display: block;
 }
 
 .socials a:hover {
@@ -291,28 +298,6 @@ main {
 
 .section .wrap {
   padding: 2rem;
-}
-
-/* Research pills */
-.list-compact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.list-compact li {
-  display: inline-flex;
-  padding: 0.4rem 1rem;
-  font-size: 0.9rem;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  color: var(--fg);
-  transition: border-color 150ms ease, background-color 150ms ease;
-}
-
-.list-compact li:hover {
-  border-color: var(--muted);
-  background: var(--surface);
 }
 
 /* Project cards */
@@ -438,6 +423,575 @@ main {
   margin-top: 0.25rem;
   color: var(--fg);
   font-size: 0.95rem;
+}
+
+/* Experience — Variant B: Split (date left, content right) */
+.exp-split-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exp-split-item {
+  display: flex;
+  gap: 2rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.exp-split-item:last-child {
+  border-bottom: none;
+}
+
+.exp-split-left {
+  flex-shrink: 0;
+  width: 10rem;
+  padding-top: 0.1rem;
+}
+
+.exp-split-period {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.exp-split-right {
+  min-width: 0;
+}
+
+.exp-split-org {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.exp-split-role {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+.exp-split-desc {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+/* Experience — Variant D: Role first */
+.exp-role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exp-role-item {
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.exp-role-item:last-child {
+  border-bottom: none;
+}
+
+.exp-role-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.exp-role-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.exp-role-period {
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.exp-role-org {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.exp-role-desc {
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+@media (max-width: 540px) {
+  .exp-split-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .exp-split-left {
+    width: auto;
+  }
+  .exp-role-header {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+}
+
+/* Experience — Variant F: Stacked bold */
+.exp-stacked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exp-stacked-item {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.exp-stacked-item:last-child {
+  border-bottom: none;
+}
+
+.exp-stacked-org {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.exp-stacked-role {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 0.1rem;
+}
+
+.exp-stacked-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.exp-stacked-desc {
+  font-size: 0.9rem;
+  color: var(--fg);
+  margin-top: 0.4rem;
+}
+
+/* Experience — Variant G: Pill role */
+.exp-pill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exp-pill-item {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.exp-pill-item:last-child {
+  border-bottom: none;
+}
+
+.exp-pill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.exp-pill-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.exp-pill-org {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.exp-pill-role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--fg);
+}
+
+.exp-pill-period {
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  padding-top: 0.15rem;
+}
+
+.exp-pill-advisor {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.exp-pill-desc {
+  font-size: 0.9rem;
+  color: var(--fg);
+  margin-top: 0.4rem;
+}
+
+/* Experience — Variant H: Cards */
+.exp-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.exp-card {
+  padding: 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  transition: border-color 200ms ease, transform 200ms ease;
+}
+
+.exp-card:hover {
+  border-color: var(--muted);
+  transform: translateY(-2px);
+}
+
+.exp-card-org {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.exp-card-role {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 0.15rem;
+}
+
+.exp-card-period {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+
+.exp-card-advisor {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.exp-card-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Experience — Variant I: Bar header */
+.exp-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exp-bar-item {
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--muted);
+  border-radius: 0 10px 10px 0;
+  background: var(--surface);
+  transition: border-color 200ms ease;
+}
+
+.exp-bar-item:hover {
+  border-left-color: var(--fg);
+}
+
+.exp-bar-org {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.exp-bar-role {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 0.1rem;
+}
+
+.exp-bar-advisor {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+.exp-bar-desc {
+  font-size: 0.9rem;
+  color: var(--fg);
+  margin-top: 0.4rem;
+}
+
+/* Experience — Variant J: Table */
+.exp-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exp-table-row {
+  display: flex;
+  gap: 2rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.exp-table-row:last-child {
+  border-bottom: none;
+}
+
+.exp-table-col-left {
+  flex-shrink: 0;
+  width: 13rem;
+}
+
+.exp-table-org {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.exp-table-role {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 0.1rem;
+}
+
+.exp-table-col-right {
+  min-width: 0;
+}
+
+.exp-table-period {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.exp-table-desc {
+  font-size: 0.9rem;
+  color: var(--fg);
+  margin-top: 0.25rem;
+}
+
+.exp-table-advisor {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 540px) {
+  .exp-cards {
+    grid-template-columns: 1fr;
+  }
+  .exp-table-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .exp-table-col-left {
+    width: auto;
+  }
+  .exp-pill-header {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
+
+/* Experience — Variant E: Dual focus */
+.exp-dual-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exp-dual-item {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.exp-dual-item:last-child {
+  border-bottom: none;
+}
+
+.exp-dual-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.exp-dual-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exp-dual-org {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.exp-dual-divider {
+  color: var(--rule);
+  font-weight: 300;
+}
+
+.exp-dual-role {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.exp-dual-period {
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.exp-dual-advisor {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.exp-dual-desc {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+@media (max-width: 540px) {
+  .exp-dual-header {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+}
+
+/* Honors — Variant C: Minimal rows */
+.honors-minimal {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.honor-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.honor-row:last-child {
+  border-bottom: none;
+}
+
+.honor-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.honor-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.honor-org {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.honor-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.honor-year {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.honor-desc {
+  font-size: 0.85rem;
+  color: var(--fg);
+}
+
+@media (max-width: 540px) {
+  .honor-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .honor-right {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+/* Honors — Variant D: Accent border blocks */
+.honors-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.honor-block {
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--muted);
+  border-radius: 0 10px 10px 0;
+  background: var(--surface);
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.honor-block:hover {
+  border-left-color: var(--fg);
+}
+
+.honor-block-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.honor-block-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.honor-block-year {
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.honor-block-desc {
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+.honor-block-org {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+@media (max-width: 540px) {
+  .honor-block-top {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
 }
 
 /* Contact */

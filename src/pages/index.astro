@@ -4,7 +4,7 @@ import Nav from '../components/Nav.astro';
 import Section from '../components/Section.astro';
 import LinkList from '../components/LinkList.astro';
 import { site } from '../data/site';
-import { research } from '../data/research';
+import { honors, type Honor } from '../data/honors';
 import { projects } from '../data/projects';
 import { experience } from '../data/experience';
 import { education } from '../data/education';
@@ -24,7 +24,8 @@ import { education } from '../data/education';
       </div>
     </section>
 
-    <Section id="experience" heading="Experience">
+    {/* ── EXP VARIANT A: Current timeline ── */}
+    <Section id="exp-a" heading="Experience — A) Timeline">
       <div class="exp-list">
         {
           experience.map((e) => (
@@ -35,6 +36,177 @@ import { education } from '../data/education';
                 {e.advisor && <> · Advisor: {e.advisor}</>}
               </div>
               <div class="exp-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT B: Split ── */}
+    <Section id="exp-b" heading="Experience — B) Split">
+      <div class="exp-split-list">
+        {
+          experience.map((e) => (
+            <div class="exp-split-item">
+              <div class="exp-split-left">
+                <span class="exp-split-period">{e.period}</span>
+              </div>
+              <div class="exp-split-right">
+                <div class="exp-split-org">{e.org}</div>
+                <div class="exp-split-role">{e.role}{e.advisor && <> · Advisor: {e.advisor}</>}</div>
+                <div class="exp-split-desc">{e.description}</div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT C: Accent blocks ── */}
+    <Section id="exp-c" heading="Experience — C) Accent Blocks">
+      <div class="honors-blocks">
+        {
+          experience.map((e) => (
+            <div class="honor-block">
+              <div class="honor-block-top">
+                <span class="honor-block-title">{e.org}</span>
+                <span class="honor-block-year">{e.period}</span>
+              </div>
+              <div class="honor-block-desc">{e.description}</div>
+              <div class="honor-block-org">{e.role}{e.advisor && <> · Advisor: {e.advisor}</>}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT D: Role First ── */}
+    <Section id="exp-d" heading="Experience — D) Role First">
+      <div class="exp-role-list">
+        {
+          experience.map((e) => (
+            <div class="exp-role-item">
+              <div class="exp-role-header">
+                <div class="exp-role-title">{e.role}</div>
+                <div class="exp-role-period">{e.period}</div>
+              </div>
+              <div class="exp-role-org">{e.org}{e.advisor && <> · Advisor: {e.advisor}</>}</div>
+              <div class="exp-role-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT E: Dual Focus ── */}
+    <Section id="exp-e" heading="Experience — E) Dual Focus">
+      <div class="exp-dual-list">
+        {
+          experience.map((e) => (
+            <div class="exp-dual-item">
+              <div class="exp-dual-header">
+                <div class="exp-dual-titles">
+                  <span class="exp-dual-org">{e.org}</span>
+                  <span class="exp-dual-divider">/</span>
+                  <span class="exp-dual-role">{e.role}</span>
+                </div>
+                <span class="exp-dual-period">{e.period}</span>
+              </div>
+              {e.advisor && <div class="exp-dual-advisor">Advisor: {e.advisor}</div>}
+              <div class="exp-dual-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT F: Stacked Bold ── */}
+    <Section id="exp-f" heading="Experience — F) Stacked Bold">
+      <div class="exp-stacked-list">
+        {
+          experience.map((e) => (
+            <div class="exp-stacked-item">
+              <div class="exp-stacked-org">{e.org}</div>
+              <div class="exp-stacked-role">{e.role}</div>
+              <div class="exp-stacked-meta">{e.period}{e.advisor && ` · Advisor: ${e.advisor}`}</div>
+              <div class="exp-stacked-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT G: Pill Role ── */}
+    <Section id="exp-g" heading="Experience — G) Pill Role">
+      <div class="exp-pill-list">
+        {
+          experience.map((e) => (
+            <div class="exp-pill-item">
+              <div class="exp-pill-header">
+                <div class="exp-pill-left">
+                  <span class="exp-pill-org">{e.org}</span>
+                  <span class="exp-pill-role-badge">{e.role}</span>
+                </div>
+                <span class="exp-pill-period">{e.period}</span>
+              </div>
+              {e.advisor && <div class="exp-pill-advisor">Advisor: {e.advisor}</div>}
+              <div class="exp-pill-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT H: Cards ── */}
+    <Section id="exp-h" heading="Experience — H) Cards">
+      <div class="exp-cards">
+        {
+          experience.map((e) => (
+            <div class="exp-card">
+              <div class="exp-card-org">{e.org}</div>
+              <div class="exp-card-role">{e.role}</div>
+              <div class="exp-card-period">{e.period}</div>
+              {e.advisor && <div class="exp-card-advisor">Advisor: {e.advisor}</div>}
+              <div class="exp-card-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT I: Bar Header ── */}
+    <Section id="exp-i" heading="Experience — I) Bar Header">
+      <div class="exp-bar-list">
+        {
+          experience.map((e) => (
+            <div class="exp-bar-item">
+              <div class="exp-bar-head">
+                <div class="exp-bar-org">{e.org}</div>
+                <div class="exp-bar-role">{e.role} · {e.period}</div>
+                {e.advisor && <div class="exp-bar-advisor">Advisor: {e.advisor}</div>}
+              </div>
+              <div class="exp-bar-desc">{e.description}</div>
+            </div>
+          ))
+        }
+      </div>
+    </Section>
+
+    {/* ── EXP VARIANT J: Table ── */}
+    <Section id="exp-j" heading="Experience — J) Table">
+      <div class="exp-table">
+        {
+          experience.map((e) => (
+            <div class="exp-table-row">
+              <div class="exp-table-col-left">
+                <div class="exp-table-org">{e.org}</div>
+                <div class="exp-table-role">{e.role}</div>
+              </div>
+              <div class="exp-table-col-right">
+                <div class="exp-table-period">{e.period}</div>
+                <div class="exp-table-desc">{e.description}</div>
+                {e.advisor && <div class="exp-table-advisor">Advisor: {e.advisor}</div>}
+              </div>
             </div>
           ))
         }
@@ -55,10 +227,38 @@ import { education } from '../data/education';
       </div>
     </Section>
 
-    <Section id="research" heading="Research">
-      <ul class="list-compact">
-        {research.map((item) => <li>{item}</li>)}
+    {/* ── Honors C: Minimal ── */}
+    <Section id="honors-c" heading="Honors & Awards — C) Minimal">
+      <ul class="honors-minimal">
+        {honors.map((h) => (
+          <li class="honor-row">
+            <div class="honor-main">
+              <span class="honor-title">{h.title}</span>
+              <span class="honor-org">{h.org}</span>
+            </div>
+            <div class="honor-right">
+              {h.year && <span class="honor-year">{h.year}</span>}
+              <span class="honor-desc">{h.description}</span>
+            </div>
+          </li>
+        ))}
       </ul>
+    </Section>
+
+    {/* ── Honors D: Accent Blocks ── */}
+    <Section id="honors-d" heading="Honors & Awards — D) Accent Blocks">
+      <div class="honors-blocks">
+        {honors.map((h) => (
+          <div class="honor-block">
+            <div class="honor-block-top">
+              <span class="honor-block-title">{h.title}</span>
+              {h.year && <span class="honor-block-year">{h.year}</span>}
+            </div>
+            <div class="honor-block-desc">{h.description}</div>
+            <div class="honor-block-org">{h.org}</div>
+          </div>
+        ))}
+      </div>
     </Section>
 
     <Section id="work" heading="Projects">

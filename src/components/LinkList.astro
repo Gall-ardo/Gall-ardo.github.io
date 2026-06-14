@@ -2,6 +2,7 @@
 interface Item {
   label: string;
   href: string;
+  icon?: string;
 }
 
 interface Props {
@@ -19,8 +20,10 @@ const { items, className = 'socials' } = Astro.props;
         href={item.href}
         target={item.href.startsWith('http') ? '_blank' : undefined}
         rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+        aria-label={item.label}
+        title={item.label}
       >
-        {item.label}
+        {item.icon ? <Fragment set:html={item.icon} /> : item.label}
       </a>
     ))
   }
