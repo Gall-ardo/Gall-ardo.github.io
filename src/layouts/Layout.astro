@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import Background from '../components/Background.astro';
+import ScrollAnimations from '../components/ScrollAnimations.astro';
 import { site } from '../data/site';
 
 interface Props {
@@ -34,5 +35,6 @@ const {
   <body>
     <Background />
     <slot />
+    <ScrollAnimations />
   </body>
 </html>

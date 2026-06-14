@@ -1,0 +1,298 @@
+---
+---
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!prefersReducedMotion) {
+    gsap.defaults({ ease: 'power3.out', duration: 1 });
+
+    // ── Nav ──
+    const navBrand = document.querySelector('.nav-brand');
+    const navLinks = document.querySelectorAll('.nav-links a, .nav-links button');
+    if (navBrand) {
+      gsap.from(navBrand, { opacity: 0, y: -20, duration: 0.8, delay: 0.2 });
+    }
+    if (navLinks.length) {
+      gsap.from(navLinks, {
+        opacity: 0,
+        y: -15,
+        stagger: 0.07,
+        duration: 0.6,
+        delay: 0.4,
+      });
+    }
+
+    // ── Hero ──
+    const hero = document.querySelector('.hero');
+    if (hero) {
+      const avatar = hero.querySelector('.hero-avatar');
+      const role = hero.querySelector('.role');
+      const h1 = hero.querySelector('h1');
+      const paragraphs = hero.querySelectorAll('.hero-text > p:not(.role)');
+      const socials = hero.querySelectorAll('.socials a');
+
+      const heroTl = gsap.timeline({ delay: 0.1 });
+
+      if (avatar) {
+        gsap.set(avatar, { opacity: 0, scale: 0.3, rotate: -8 });
+        heroTl.to(avatar, {
+          opacity: 1,
+          scale: 1,
+          rotate: 0,
+          duration: 0.6,
+          ease: 'back.out(1.7)',
+        });
+      }
+
+      if (role) {
+        gsap.set(role, { opacity: 0, y: 15 });
+        heroTl.to(role, { opacity: 1, y: 0, duration: 0.35 }, 0.1);
+      }
+
+      if (h1) {
+        const text = h1.textContent || '';
+        const words = text.split(' ');
+        h1.innerHTML = words
+          .map((w) => `<span class="word-wrap"><span class="word">${w}</span></span>`)
+          .join(' ');
+        const wordSpans = h1.querySelectorAll('.word');
+        gsap.set(wordSpans, { yPercent: 110 });
+        heroTl.to(
+          wordSpans,
+          {
+            yPercent: 0,
+            stagger: 0.03,
+            duration: 0.45,
+            ease: 'power4.out',
+          },
+          0.15
+        );
+      }
+
+      if (paragraphs.length) {
+        gsap.set(paragraphs, { opacity: 0, y: 15 });
+        heroTl.to(
+          paragraphs,
+          { opacity: 1, y: 0, stagger: 0.06, duration: 0.4 },
+          0.35
+        );
+      }
+
+      if (socials.length) {
+        gsap.set(socials, { opacity: 0, scale: 0, y: 8 });
+        heroTl.to(
+          socials,
+          {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            stagger: 0.04,
+            duration: 0.3,
+            ease: 'back.out(2)',
+          },
+          0.5
+        );
+      }
+    }
+
+    // ── Section headings — clip reveal ──
+    document.querySelectorAll('.section h2').forEach((heading) => {
+      const text = heading.textContent || '';
+      heading.innerHTML = `<span class="heading-reveal">${text}</span>`;
+      const inner = heading.querySelector('.heading-reveal') as HTMLElement;
+      gsap.set(inner, { yPercent: 100 });
+      gsap.set(heading, { overflow: 'hidden' });
+
+      ScrollTrigger.create({
+        trigger: heading.closest('.section'),
+        start: 'top 92%',
+        once: true,
+        onEnter: () => {
+          gsap.to(inner, {
+            yPercent: 0,
+            duration: 0.9,
+            ease: 'power4.out',
+          });
+        },
+      });
+    });
+
+    // ── Experience / Education timeline ──
+    document.querySelectorAll('.exp-list').forEach((list) => {
+      const line = list as HTMLElement;
+      const section = list.closest('.section');
+
+      // Line draws fully from top to bottom as you scroll through
+      gsap.set(line, { '--line-scale': 0 } as any);
+      ScrollTrigger.create({
+        trigger: line,
+        start: 'top 85%',
+        end: 'bottom 50%',
+        scrub: 0.3,
+        onUpdate: (self) => {
+          gsap.set(line, { '--line-scale': self.progress } as any);
+        },
+      });
+
+      // Animate all entries together when the section enters
+      const items = list.querySelectorAll('.exp-item');
+      items.forEach((item) => {
+        gsap.set(item, { opacity: 0, x: -40 });
+      });
+
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top 92%',
+        once: true,
+        onEnter: () => {
+          gsap.to(items, {
+            opacity: 1,
+            x: 0,
+            duration: 0.8,
+            stagger: 0.1,
+            ease: 'power3.out',
+          });
+        },
+      });
+
+      // Each dot activates individually as you scroll to it
+      items.forEach((item) => {
+        ScrollTrigger.create({
+          trigger: item,
+          start: 'top 70%',
+          once: true,
+          onEnter: () => {
+            item.classList.add('dot-active');
+          },
+        });
+      });
+    });
+
+    // ── Research pills — spring pop ──
+    const pills = document.querySelectorAll('.list-compact li');
+    if (pills.length) {
+      const researchSection = document.querySelector('.list-compact')?.closest('.section');
+      gsap.set(pills, { opacity: 0, scale: 0, y: 20 });
+      ScrollTrigger.create({
+        trigger: researchSection,
+        start: 'top 92%',
+        once: true,
+        onEnter: () => {
+          gsap.to(pills, {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            stagger: 0.06,
+            duration: 0.6,
+            ease: 'back.out(2.5)',
+          });
+        },
+      });
+    }
+
+    // ── Project cards — staggered scale reveal ──
+    const cards = document.querySelectorAll('.project');
+    if (cards.length) {
+      const projectSection = document.querySelector('.projects')?.closest('.section');
+      cards.forEach((card) => {
+        gsap.set(card, { opacity: 0, y: 60, scale: 0.9 });
+      });
+      ScrollTrigger.create({
+        trigger: projectSection,
+        start: 'top 92%',
+        once: true,
+        onEnter: () => {
+          gsap.to(cards, {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.9,
+            stagger: 0.1,
+            ease: 'power3.out',
+          });
+        },
+      });
+    }
+
+    // ── Contact — fade up ──
+    const contact = document.querySelector('.contact');
+    if (contact) {
+      const contactSection = contact.closest('.section');
+      const contactP = contact.querySelector('p');
+      const contactSocials = contact.querySelectorAll('.socials a');
+
+      if (contactP) {
+        gsap.set(contactP, { opacity: 0, y: 30 });
+        gsap.set(contactSocials, { opacity: 0, scale: 0 });
+        ScrollTrigger.create({
+          trigger: contactSection,
+          start: 'top 92%',
+          once: true,
+          onEnter: () => {
+            gsap.to(contactP, { opacity: 1, y: 0, duration: 0.8 });
+            if (contactSocials.length) {
+              gsap.to(contactSocials, {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.08,
+                duration: 0.5,
+                delay: 0.3,
+                ease: 'back.out(2)',
+              });
+            }
+          },
+        });
+      }
+    }
+
+    // ── Frosted surface cards — subtle parallax ──
+    document.querySelectorAll('.section .surface').forEach((surface) => {
+      gsap.to(surface, {
+        y: -15,
+        scrollTrigger: {
+          trigger: surface,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
+        },
+      });
+    });
+
+    // ── Footer ──
+    const footer = document.querySelector('footer');
+    if (footer) {
+      gsap.set(footer, { opacity: 0 });
+      ScrollTrigger.create({
+        trigger: footer,
+        start: 'top 95%',
+        once: true,
+        onEnter: () => {
+          gsap.to(footer, { opacity: 1, duration: 1 });
+        },
+      });
+    }
+  }
+</script>
+
+<style is:global>
+  .word-wrap {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding-bottom: 0.05em;
+  }
+
+  .word {
+    display: inline-block;
+  }
+
+  .heading-reveal {
+    display: inline-block;
+  }
+</style>

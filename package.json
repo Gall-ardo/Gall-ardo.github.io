@@ -11,6 +11,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^4.16.18"
+    "astro": "^4.16.18",
+    "gsap": "^3.15.0"
   }
 }

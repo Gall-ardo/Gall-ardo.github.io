@@ -211,6 +211,9 @@ main {
 
 .hero h1 {
   margin-bottom: 1.5rem;
+}
+
+.hero h1 .word {
   background: linear-gradient(135deg, var(--fg) 0%, var(--muted) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -383,6 +386,8 @@ main {
   width: 2px;
   background: var(--rule);
   border-radius: 1px;
+  transform-origin: top;
+  transform: scaleY(var(--line-scale, 1));
 }
 
 .exp-item {
@@ -407,11 +412,17 @@ main {
   border-radius: 50%;
   border: 2px solid var(--rule);
   background: var(--bg);
-  transition: border-color 200ms ease;
+  transition: border-color 400ms ease, background-color 400ms ease, box-shadow 400ms ease;
 }
 
-.exp-item:hover::before {
+.exp-item.dot-active::before {
   border-color: var(--fg);
+  background: var(--fg);
+  box-shadow: 0 0 8px rgba(150, 175, 235, 0.4);
+}
+
+:root:not([data-theme='dark']) .exp-item.dot-active::before {
+  box-shadow: 0 0 8px rgba(26, 26, 26, 0.2);
 }
 
 .exp-org {
