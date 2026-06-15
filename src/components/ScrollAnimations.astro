@@ -9,6 +9,9 @@
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // Remove the CSS pre-hide class now that GSAP is loaded and about to take over
+  document.documentElement.classList.remove('anim-pending');
+
   if (!prefersReducedMotion) {
     gsap.defaults({ ease: 'power3.out', duration: 1 });
 
