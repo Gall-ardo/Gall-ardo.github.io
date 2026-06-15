@@ -14,9 +14,9 @@ export const honors: Honor[] = [
   },
   {
     title: 'HUPROG Programming Competition Finalist',
-    org: 'Hacettepe University',
+    org: 'ACM Hacettepe',
     year: '2026',
-    description: 'Placed 6th in an inter-university competitive programming contest hosted by Hacettepe University, competing against 150 teams.',
+    description: 'Ranked 6th out of 150 teams in an inter-university competitive programming contest.',
   },
   {
     title: 'ALPOC Algorithm Competition Finalist',
@@ -28,7 +28,7 @@ export const honors: Honor[] = [
     title: 'BuCode Algorithm Competition Finalist',
     org: 'Boğaziçi University COMPEC',
     year: '2024',
-    description: 'Finished in the top 15 out of 129 competing teams in one of Turkey\'s most competitive student algorithm contests.',
+    description: 'Ranked in the top 15 out of 129 teams in a national student algorithm contest.',
   },
   {
     title: 'Bilkent University Comprehensive Scholarship',

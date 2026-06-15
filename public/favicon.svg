@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9aa3b2"/>
+      <stop offset="0.5" stop-color="#545c6a"/>
+      <stop offset="0.5" stop-color="#69727f"/>
+      <stop offset="1" stop-color="#353b45"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#metal)"/>
+  <text x="50" y="50" dy="0.34em" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif"
+        font-size="38" font-weight="700" letter-spacing="-1" fill="#ffffff">HAÖ</text>
+</svg>

@@ -14,7 +14,9 @@
 
     // ── Nav ──
     const navBrand = document.querySelector('.nav-brand');
-    const navLinks = document.querySelectorAll('.nav-links a, .nav-links button');
+    // Only the text links animate in; the theme toggle and hamburger stay
+    // visible immediately so navigation works even if GSAP fails to load.
+    const navLinks = document.querySelectorAll('.nav-links a');
     if (navBrand) {
       gsap.from(navBrand, { opacity: 0, y: -20, duration: 0.8, delay: 0.2 });
     }
@@ -175,28 +177,6 @@
         });
       });
     });
-
-    // ── Research pills — spring pop ──
-    const pills = document.querySelectorAll('.list-compact li');
-    if (pills.length) {
-      const researchSection = document.querySelector('.list-compact')?.closest('.section');
-      gsap.set(pills, { opacity: 0, scale: 0, y: 20 });
-      ScrollTrigger.create({
-        trigger: researchSection,
-        start: 'top 92%',
-        once: true,
-        onEnter: () => {
-          gsap.to(pills, {
-            opacity: 1,
-            scale: 1,
-            y: 0,
-            stagger: 0.06,
-            duration: 0.6,
-            ease: 'back.out(2.5)',
-          });
-        },
-      });
-    }
 
     // ── Project cards — staggered scale reveal ──
     const cards = document.querySelectorAll('.project');

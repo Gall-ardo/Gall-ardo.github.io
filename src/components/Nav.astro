@@ -5,23 +5,61 @@ import { site } from '../data/site';
 <header class="nav">
   <div class="wrap nav-inner">
     <a href="/" class="nav-brand">{site.shortName}</a>
-    <nav class="nav-links" aria-label="Primary">
-      {site.nav.map((item) => <a href={item.href}>{item.label}</a>)}
+    <div class="nav-actions">
+      <nav class="nav-links" id="nav-links" aria-label="Primary">
+        {site.nav.map((item) => <a href={item.href}>{item.label}</a>)}
+      </nav>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme">
         <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
         <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
       </button>
-    </nav>
+      <button
+        id="nav-toggle"
+        class="nav-toggle"
+        type="button"
+        aria-label="Toggle menu"
+        aria-expanded="false"
+        aria-controls="nav-links"
+      >
+        <span class="nav-toggle-bar" aria-hidden="true"></span>
+        <span class="nav-toggle-bar" aria-hidden="true"></span>
+        <span class="nav-toggle-bar" aria-hidden="true"></span>
+      </button>
+    </div>
   </div>
 </header>
 
 <script>
-  const toggle = document.getElementById('theme-toggle');
-  toggle?.addEventListener('click', () => {
-    const root = document.documentElement;
+  const root = document.documentElement;
+
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle?.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
     root.dataset.theme = next;
     localStorage.setItem('theme', next);
     window.dispatchEvent(new Event('theme-change'));
+  });
+
+  const header = document.querySelector('.nav');
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks = document.getElementById('nav-links');
+
+  const setOpen = (open: boolean) => {
+    header?.classList.toggle('open', open);
+    navToggle?.setAttribute('aria-expanded', String(open));
+  };
+
+  navToggle?.addEventListener('click', () => {
+    setOpen(!header?.classList.contains('open'));
+  });
+
+  // Close the menu after navigating to a section.
+  navLinks?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => setOpen(false));
+  });
+
+  // Close on Escape for keyboard users.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setOpen(false);
   });
 </script>

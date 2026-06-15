@@ -58,6 +58,19 @@ footer {
   z-index: 1;
 }
 
+/* Pre-hide elements GSAP animates in, so they don't flash before the
+   animation runs. The class is added before paint and removed by a safety
+   timeout if the script fails. Reduced-motion users never get the class. */
+html.anim-pending .nav-brand,
+html.anim-pending .nav-links a,
+html.anim-pending .hero-avatar,
+html.anim-pending .hero .role,
+html.anim-pending .hero h1,
+html.anim-pending .hero-text > p:not(.role),
+html.anim-pending .hero .socials a {
+  opacity: 0;
+}
+
 a {
   color: var(--fg);
   text-decoration: none;
@@ -131,17 +144,66 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  position: relative;
 }
 
 .nav-brand {
   font-size: 0.95rem;
   border-bottom: none;
+  white-space: nowrap;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
 }
 
 .nav-links {
   display: flex;
   gap: 1.25rem;
   font-size: 0.95rem;
+}
+
+/* Hamburger — hidden on desktop, shown on small screens. */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.nav-toggle:hover {
+  border-color: var(--fg);
+}
+
+.nav-toggle-bar {
+  width: 16px;
+  height: 2px;
+  margin: 0 auto;
+  background: var(--fg);
+  border-radius: 2px;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.nav.open .nav-toggle-bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.nav.open .nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav.open .nav-toggle-bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 .nav-links a {
@@ -184,6 +246,44 @@ main {
 
 :root[data-theme='dark'] .theme-icon-moon {
   display: inline;
+}
+
+/* Mobile navigation — collapse links into a toggleable panel. */
+@media (max-width: 640px) {
+  .nav-toggle {
+    display: inline-flex;
+  }
+  .nav-links {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    min-width: 11rem;
+    padding: 0.4rem;
+    background: var(--surface);
+    backdrop-filter: blur(8px) saturate(1.1);
+    -webkit-backdrop-filter: blur(8px) saturate(1.1);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 160ms ease, transform 160ms ease, visibility 160ms;
+    z-index: 5;
+  }
+  .nav.open .nav-links {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .nav-links a {
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+  }
+  .nav-links a:hover {
+    background: var(--bg);
+  }
 }
 
 /* Frosted surface so content stays readable over the live background. */
@@ -459,523 +559,24 @@ main {
   color: var(--muted);
 }
 
+.exp-org a,
+.exp-advisor a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.exp-org a:hover,
+.exp-advisor a:hover {
+  opacity: 1;
+}
+
 .exp-desc {
   margin-top: 0.25rem;
   color: var(--fg);
   font-size: 0.95rem;
-}
-
-/* Experience — Variant B: Split (date left, content right) */
-.exp-split-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.exp-split-item {
-  display: flex;
-  gap: 2rem;
-  padding: 1.25rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.exp-split-item:last-child {
-  border-bottom: none;
-}
-
-.exp-split-left {
-  flex-shrink: 0;
-  width: 10rem;
-  padding-top: 0.1rem;
-}
-
-.exp-split-period {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.exp-split-right {
-  min-width: 0;
-}
-
-.exp-split-org {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.exp-split-role {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-top: 0.1rem;
-}
-
-.exp-split-desc {
-  margin-top: 0.35rem;
-  font-size: 0.9rem;
-  color: var(--fg);
-}
-
-/* Experience — Variant D: Role first */
-.exp-role-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.exp-role-item {
-  padding: 1.1rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.exp-role-item:last-child {
-  border-bottom: none;
-}
-
-.exp-role-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-}
-
-.exp-role-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.exp-role-period {
-  font-size: 0.8rem;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.exp-role-org {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-top: 0.15rem;
-}
-
-.exp-role-desc {
-  margin-top: 0.3rem;
-  font-size: 0.9rem;
-  color: var(--fg);
-}
-
-@media (max-width: 540px) {
-  .exp-split-item {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .exp-split-left {
-    width: auto;
-  }
-  .exp-role-header {
-    flex-direction: column;
-    gap: 0.1rem;
-  }
-}
-
-/* Experience — Variant F: Stacked bold */
-.exp-stacked-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.exp-stacked-item {
-  padding: 1.25rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.exp-stacked-item:last-child {
-  border-bottom: none;
-}
-
-.exp-stacked-org {
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
-}
-
-.exp-stacked-role {
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin-top: 0.1rem;
-}
-
-.exp-stacked-meta {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.2rem;
-}
-
-.exp-stacked-desc {
-  font-size: 0.9rem;
-  color: var(--fg);
-  margin-top: 0.4rem;
-}
-
-/* Experience — Variant G: Pill role */
-.exp-pill-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.exp-pill-item {
-  padding: 1.25rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.exp-pill-item:last-child {
-  border-bottom: none;
-}
-
-.exp-pill-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.exp-pill-left {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.exp-pill-org {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.exp-pill-role-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.65rem;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  color: var(--fg);
-}
-
-.exp-pill-period {
-  font-size: 0.8rem;
-  color: var(--muted);
-  flex-shrink: 0;
-  padding-top: 0.15rem;
-}
-
-.exp-pill-advisor {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.2rem;
-}
-
-.exp-pill-desc {
-  font-size: 0.9rem;
-  color: var(--fg);
-  margin-top: 0.4rem;
-}
-
-/* Experience — Variant H: Cards */
-.exp-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.exp-card {
-  padding: 1.25rem;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  transition: border-color 200ms ease, transform 200ms ease;
-}
-
-.exp-card:hover {
-  border-color: var(--muted);
-  transform: translateY(-2px);
-}
-
-.exp-card-org {
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.exp-card-role {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-top: 0.15rem;
-}
-
-.exp-card-period {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-top: 0.3rem;
-}
-
-.exp-card-advisor {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-.exp-card-desc {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-top: 0.5rem;
-  line-height: 1.5;
-}
-
-/* Experience — Variant I: Bar header */
-.exp-bar-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.exp-bar-item {
-  padding: 1rem 1.25rem;
-  border-left: 3px solid var(--muted);
-  border-radius: 0 10px 10px 0;
-  background: var(--surface);
-  transition: border-color 200ms ease;
-}
-
-.exp-bar-item:hover {
-  border-left-color: var(--fg);
-}
-
-.exp-bar-org {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.exp-bar-role {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-top: 0.1rem;
-}
-
-.exp-bar-advisor {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.1rem;
-}
-
-.exp-bar-desc {
-  font-size: 0.9rem;
-  color: var(--fg);
-  margin-top: 0.4rem;
-}
-
-/* Experience — Variant J: Table */
-.exp-table {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.exp-table-row {
-  display: flex;
-  gap: 2rem;
-  padding: 1.1rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.exp-table-row:last-child {
-  border-bottom: none;
-}
-
-.exp-table-col-left {
-  flex-shrink: 0;
-  width: 13rem;
-}
-
-.exp-table-org {
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.exp-table-role {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-top: 0.1rem;
-}
-
-.exp-table-col-right {
-  min-width: 0;
-}
-
-.exp-table-period {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.exp-table-desc {
-  font-size: 0.9rem;
-  color: var(--fg);
-  margin-top: 0.25rem;
-}
-
-.exp-table-advisor {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.15rem;
-}
-
-@media (max-width: 540px) {
-  .exp-cards {
-    grid-template-columns: 1fr;
-  }
-  .exp-table-row {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .exp-table-col-left {
-    width: auto;
-  }
-  .exp-pill-header {
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-}
-
-/* Experience — Variant E: Dual focus */
-.exp-dual-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.exp-dual-item {
-  padding: 1.25rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.exp-dual-item:last-child {
-  border-bottom: none;
-}
-
-.exp-dual-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-}
-
-.exp-dual-titles {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.exp-dual-org {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.exp-dual-divider {
-  color: var(--rule);
-  font-weight: 300;
-}
-
-.exp-dual-role {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--muted);
-}
-
-.exp-dual-period {
-  font-size: 0.8rem;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.exp-dual-advisor {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.2rem;
-}
-
-.exp-dual-desc {
-  margin-top: 0.4rem;
-  font-size: 0.9rem;
-  color: var(--fg);
-}
-
-@media (max-width: 540px) {
-  .exp-dual-header {
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-}
-
-/* Honors — Variant C: Minimal rows */
-.honors-minimal {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.honor-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1.5rem;
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.honor-row:last-child {
-  border-bottom: none;
-}
-
-.honor-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.honor-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.honor-org {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.honor-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.15rem;
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.honor-year {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.honor-desc {
-  font-size: 0.85rem;
-  color: var(--fg);
-}
-
-@media (max-width: 540px) {
-  .honor-row {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .honor-right {
-    align-items: flex-start;
-    text-align: left;
-  }
 }
 
 /* Honors — Variant D: Accent border blocks */

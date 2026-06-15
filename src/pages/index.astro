@@ -15,7 +15,7 @@ import { education } from '../data/education';
 
   <main>
     <section class="hero wrap surface" data-photo="square-side">
-      <img class="hero-avatar" src={site.avatar} alt={site.name} width="120" height="120" />
+      <img class="hero-avatar" src={site.avatar} alt={site.name} width="130" height="165" fetchpriority="high" />
       <div class="hero-text">
         <p class="role">{site.title}</p>
         <h1>{site.heading}</h1>
@@ -30,12 +30,22 @@ import { education } from '../data/education';
           experience.map((e) => (
             <div class="exp-item">
               <div class="exp-org">
-                {e.org}
+                {e.orgUrl ? <a href={e.orgUrl} target="_blank" rel="noopener noreferrer">{e.org}</a> : e.org}
                 <span class="exp-period">{e.period}</span>
               </div>
               <div class="exp-meta">
                 <span class="exp-role">{e.role}</span>
-                {e.advisor && <span class="exp-advisor"> · Advisor: {e.advisor}</span>}
+                {e.advisors && e.advisors.length > 0 && (
+                  <span class="exp-advisor">
+                    {' · Advisor: '}
+                    {e.advisors.map((a, i) => (
+                      <>
+                        {i > 0 && ', '}
+                        <a href={a.url} target="_blank" rel="noopener noreferrer">{a.name}</a>
+                      </>
+                    ))}
+                  </span>
+                )}
               </div>
               <div class="exp-desc">{e.description}</div>
             </div>
