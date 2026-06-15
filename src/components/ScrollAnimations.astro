@@ -12,23 +12,8 @@
   if (!prefersReducedMotion) {
     gsap.defaults({ ease: 'power3.out', duration: 1 });
 
-    // ── Nav ──
-    const navBrand = document.querySelector('.nav-brand');
-    // Only the text links animate in; the theme toggle and hamburger stay
-    // visible immediately so navigation works even if GSAP fails to load.
-    const navLinks = document.querySelectorAll('.nav-links a');
-    if (navBrand) {
-      gsap.from(navBrand, { opacity: 0, y: -20, duration: 0.8, delay: 0.2 });
-    }
-    if (navLinks.length) {
-      gsap.from(navLinks, {
-        opacity: 0,
-        y: -15,
-        stagger: 0.07,
-        duration: 0.6,
-        delay: 0.4,
-      });
-    }
+    // The nav bar is intentionally NOT animated — it must always be visible
+    // immediately and never depend on an animation completing.
 
     // ── Hero ──
     const hero = document.querySelector('.hero');

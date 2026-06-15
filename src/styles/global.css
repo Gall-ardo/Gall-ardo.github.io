@@ -61,8 +61,6 @@ footer {
 /* Pre-hide elements GSAP animates in, so they don't flash before the
    animation runs. The class is added before paint and removed by a safety
    timeout if the script fails. Reduced-motion users never get the class. */
-html.anim-pending .nav-brand,
-html.anim-pending .nav-links a,
 html.anim-pending .hero-avatar,
 html.anim-pending .hero .role,
 html.anim-pending .hero h1,
