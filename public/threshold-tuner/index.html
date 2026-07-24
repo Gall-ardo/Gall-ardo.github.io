@@ -36,11 +36,6 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:6px
 h1{font-size:19px;margin:0;font-weight:650}
 .sub{color:var(--ink2);font-size:12.5px;margin:2px 0 14px}
 .spacer{flex:1}
-.tabs{display:flex;gap:2px;background:var(--chip);border-radius:8px;padding:2px}
-.tabs button{border:0;background:transparent;color:var(--ink2);font:inherit;font-size:13px;
-  padding:5px 12px;border-radius:6px;cursor:pointer}
-.tabs button.active{background:var(--surface);color:var(--ink);font-weight:600;
-  box-shadow:0 0 0 1px var(--border)}
 #themeBtn{border:1px solid var(--border);background:var(--surface);color:var(--ink2);
   font:inherit;font-size:12.5px;padding:5px 10px;border-radius:6px;cursor:pointer}
 
@@ -122,10 +117,6 @@ footer div{overflow-wrap:anywhere}
   <header>
     <h1>Hierarchical Threshold Tuner</h1>
     <div class="spacer"></div>
-    <div class="tabs" id="viewTabs">
-      <button data-view="full" class="active">Full 1000</button>
-      <button data-view="r100">Random-100 (Audiobox sample)</button>
-    </div>
     <button id="themeBtn">theme: auto</button>
   </header>
   <div class="sub" id="subline"></div>
@@ -177,7 +168,6 @@ const NUMH = {        // numeric-stage histogram domains
 
 /* ---------- shared state ---------- */
 const state = {
-  view:"full",
   np:Object.assign({}, NUM_DEF),                     // numeric thresholds
   numOn:{silent:true, static:true, dark:true, motion:true},
   th:{dover:0, nisqa:0, audiobox:0, av:0},           // rule: drop if score < threshold
@@ -197,7 +187,6 @@ function readHash(){
     if(p.has("n_"+k) && isFinite(+p.get("n_"+k))) state.np[k] = +p.get("n_"+k);
   if(p.has("noff")) for(const id of p.get("noff").split(","))
     if(id in state.numOn) state.numOn[id]=false;
-  if(p.get("view")==="r100") state.view="r100";
 }
 function writeHash(){
   const p = new URLSearchParams();
@@ -209,7 +198,6 @@ function writeHash(){
     if(state.np[k]!==NUM_DEF[k]) p.set("n_"+k, state.np[k]);
   const off = NUMERIC_RULES.filter(r=>!state.numOn[r.id]).map(r=>r.id);
   if(off.length) p.set("noff", off.join(","));
-  if(state.view!=="full") p.set("view", state.view);
   history.replaceState(null,"", p.toString()? "#"+p.toString() : location.pathname);
 }
 
@@ -259,15 +247,12 @@ function runCascade(pop, activeKeys){
   return {stages:out, final:entering.length, finalClips:entering};
 }
 
-/* Audiobox now covers all 1000 clips, so it is a real, tunable stage in the full
-   view. Older data.js payloads (random-100 only) still fall back to pass-through. */
+/* Audiobox covers all 1000 clips, so it is a real, tunable stage. Older data.js
+   payloads (random-100 only) still fall back to a pass-through Audiobox stage. */
 const AB_FULL = D.audiobox_coverage === "full1000";
-const r100Members = ()=> D.clips.filter(c=>c.ab100 ? true : (!AB_FULL && c.audiobox!=null));
 
 function currentCascade(){
-  if(state.view==="full")
-    return {pop:D.clips, act:AB_FULL ? ["dover","nisqa","audiobox","av"] : ["dover","nisqa","av"]};
-  return {pop:r100Members(), act:["dover","nisqa","audiobox","av"]};
+  return {pop:D.clips, act:AB_FULL ? ["dover","nisqa","audiobox","av"] : ["dover","nisqa","av"]};
 }
 
 /* ---------- Gemini keep estimate (from existing random-200 labels; no model is run) ---------- */
@@ -548,14 +533,12 @@ function render(){
   const addArr=()=>flow.appendChild(el("div",{class:"arr"},"→"));
 
   /* Stage 0 */
-  const full = state.view==="full";
   const s0n = cc.pop.length;
-  addNode("Stage 0 · all clips", s0n, full?"final_two_stage_1000":"random-100 sample");
+  addNode("Stage 0 · all clips", s0n, "final_two_stage_1000");
   const s0 = el("div",{class:"card"});
   s0.innerHTML = `<div class="stage-head"><span class="stage-no">STAGE 0</span>
-      <span class="stage-title">${full?"All clips":"Random-100 Audiobox sample"}</span></div>
-    <div class="counts"><div class="c"><div class="k">clips</div><div class="v">${fmtN(s0n)}</div></div></div>
-    ${full?"":`<div class="note">100 clips randomly sampled from the 827 numeric-passed set — the original Audiobox random-100 sample.${AB_FULL?" Audiobox now covers all 1000 clips, so this view is kept only for comparison with the earlier random-100 run; use the “Full 1000” tab for dataset-level results.":" This view exists because full-827 Audiobox scores do <b>not</b> exist;"} do not read these counts as full-dataset results.</div>`}`;
+      <span class="stage-title">All clips</span></div>
+    <div class="counts"><div class="c"><div class="k">clips</div><div class="v">${fmtN(s0n)}</div></div></div>`;
   stagesDiv.appendChild(s0);
 
   /* Stage 1: tunable numeric filter */
@@ -621,11 +604,8 @@ function render(){
   stagesDiv.appendChild(geminiCard(res));
 
   $("#subline").textContent =
-    (full
-      ? "Sequential cascade over final_two_stage_1000 (1000 clips). A clip dropped at any stage never enters later stages."
-        + (AB_FULL?" Audiobox Aesthetics covers all 1000 clips and is a live, tunable stage here.":"")
-      : "Sequential cascade over the original random-100 Audiobox sample. A clip dropped at any stage never enters later stages.")
-    + " Thresholds (numeric + metric) are shared between the two views.";
+    "Sequential cascade over final_two_stage_1000 (1000 clips). A clip dropped at any stage never enters later stages."
+    + (AB_FULL?" Audiobox Aesthetics covers all 1000 clips and is a live, tunable stage.":"");
 }
 
 /* ---------- tooltip ---------- */
@@ -640,13 +620,7 @@ document.addEventListener("mousemove", e=>{
   } else tip.style.display="none";
 });
 
-/* ---------- tabs & theme ---------- */
-$("#viewTabs").addEventListener("click", e=>{
-  const b = e.target.closest("button[data-view]"); if(!b) return;
-  state.view = b.dataset.view;
-  document.querySelectorAll("#viewTabs button").forEach(x=>x.classList.toggle("active", x===b));
-  render();
-});
+/* ---------- theme ---------- */
 const themes = ["auto","light","dark"]; let ti=0;
 $("#themeBtn").addEventListener("click", ()=>{
   ti = (ti+1)%3; const t = themes[ti];
@@ -664,10 +638,6 @@ $("#foot").innerHTML =
   + `<div>static dashboard — no model is executed.</div>`;
 
 readHash();
-if(state.view==="r100"){
-  document.querySelectorAll("#viewTabs button").forEach(x=>
-    x.classList.toggle("active", x.dataset.view==="r100"));
-}
 render();
 })();
 </script>

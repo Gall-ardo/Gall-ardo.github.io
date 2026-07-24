@@ -23,7 +23,8 @@ moving an upstream slider live-recomputes all downstream input/dropped/kept coun
 - Stage 4: Audiobox Aesthetics — since the 2026-07-24 full-1000 run this is a LIVE, tunable
   stage in the Full view (it used to be a pass-through). All 1000 clips have a score, so the
   slider filters the whole dataset even when numeric thresholds are loosened past the 827.
-  The Random-100 view is retained only for comparison against the earlier sampled run.
+  The separate Random-100 view was removed once Audiobox covered every clip — it showed
+  the same scores restricted to an arbitrary 100-clip subset and added nothing.
 - Stage 5: AVBench AV consistency (slider)
 - Stage 6: surviving clips -> would go to Gemini 2.5 Flash on 720p_8fps proxies (NOT executed).
   Since the 2026-07-23 upgrade this stage shows an ESTIMATED Gemini keep count: the keep
@@ -36,7 +37,6 @@ moving an upstream slider live-recomputes all downstream input/dropped/kept coun
 - runs/final_filtering/final_two_stage_1000/numeric_prefilter_manifest.jsonl (cross-check)
 - runs/model_benchmark/avbench_metric_pipeline_827/20260706_101334/combined_metric_scores_827.csv
 - runs/model_benchmark/audiobox_aesthetics_full1000/20260724_202922 (all 1000 Audiobox scores — current)
-- runs/model_benchmark/audiobox_aesthetics_random100/20260708_231654/audiobox_random100_scores.csv (superseded; Random-100 view only)
 - runs/model_benchmark/gemini_flash_random200/20260630_230457/gemini_results.jsonl (estimation only)
 
 ## Audiobox Aesthetics full-1000 run
@@ -48,7 +48,7 @@ moving an upstream slider live-recomputes all downstream input/dropped/kept coun
 - Source run: `runs/model_benchmark/audiobox_aesthetics_full1000/20260724_202922`
 - Model `facebook/audiobox-aesthetics`; avg_score = (CE + CU + PQ − PC) / 4
 - Merged into `data.js` with `merge_audiobox_full1000_into_threshold_tuner.py --in-place`
-  (900 nulls filled, 100 random-100 values refreshed, 0 clips unmatched; a timestamped
+  (900 nulls filled, 100 previously-sampled values refreshed, 0 clips unmatched; a timestamped
   `.bak` of the previous `data.js` sits beside it).
 - Peak VRAM is the process-specific figure from `nvidia-smi` polling on a dedicated T4;
   0.208 s/clip is wall time over all 1000 clips including audio extraction.
@@ -58,10 +58,10 @@ moving an upstream slider live-recomputes all downstream input/dropped/kept coun
   4 default rules == op_* flags for all 1000 clips, 1000/173/827, manifest identity,
   gemini-200 ⊂ 827 with 143 keep / 57 drop)
 - data.js — embedded per-clip raw numeric stats + metric scores (1000 clips; 827 with
-  DOVER/NISQA/AV, all 1000 with Audiobox; `ab100:1` marks the original random-100 sample)
+  DOVER/NISQA/AV, all 1000 with Audiobox)
 - index.html — the dashboard (vanilla JS, no network calls; open locally or via any static server)
 
-Thresholds persist in the URL hash (e.g. #dover=30&nisqa=1&av=0.2&n_dark=30&noff=motion&view=r100) — shareable.
+Thresholds persist in the URL hash (e.g. #dover=30&nisqa=1&audiobox=3&av=0.2&n_dark=30&noff=motion) — shareable.
 
 Deployed copy: runs/final_filtering/final_two_stage_1000/web_dashboard/hierarchical_threshold_tuner/
 
@@ -85,3 +85,11 @@ Headless Chromium, 33 checks, all passing:
 - Downstream cascade and the Gemini estimate both recompute from the Audiobox slider
   (≈591 keep → ≈86 keep at threshold 3.50).
 - DOVER, NISQA, AV and the numeric sliders all still drive the cascade; no console errors.
+
+## Change (2026-07-24, later): Random-100 view removed
+
+The tuner is now a single "Full 1000" view. The Random-100 tab existed only because
+full Audiobox coverage did not; with all 1000 clips scored it showed the same numbers
+over an arbitrary 100-clip subset, so it was removed along with its `view=r100` hash
+parameter and the per-clip `ab100` markers. Re-validated headless: 24 checks passing,
+defaults still 173 dropped / 827 kept, no console errors.
