@@ -124,7 +124,7 @@ footer div{overflow-wrap:anywhere}
     <div class="spacer"></div>
     <div class="tabs" id="viewTabs">
       <button data-view="full" class="active">Full 1000</button>
-      <button data-view="r100">Random-100 (Audiobox)</button>
+      <button data-view="r100">Random-100 (Audiobox sample)</button>
     </div>
     <button id="themeBtn">theme: auto</button>
   </header>
@@ -259,11 +259,15 @@ function runCascade(pop, activeKeys){
   return {stages:out, final:entering.length, finalClips:entering};
 }
 
+/* Audiobox now covers all 1000 clips, so it is a real, tunable stage in the full
+   view. Older data.js payloads (random-100 only) still fall back to pass-through. */
+const AB_FULL = D.audiobox_coverage === "full1000";
+const r100Members = ()=> D.clips.filter(c=>c.ab100 ? true : (!AB_FULL && c.audiobox!=null));
+
 function currentCascade(){
   if(state.view==="full")
-    // Audiobox has no full-827 scores -> pass-through stage in this view
-    return {pop:D.clips, act:["dover","nisqa","av"]};
-  return {pop:D.clips.filter(c=>c.audiobox!=null), act:["dover","nisqa","audiobox","av"]};
+    return {pop:D.clips, act:AB_FULL ? ["dover","nisqa","audiobox","av"] : ["dover","nisqa","av"]};
+  return {pop:r100Members(), act:["dover","nisqa","audiobox","av"]};
 }
 
 /* ---------- Gemini keep estimate (from existing random-200 labels; no model is run) ---------- */
@@ -452,8 +456,9 @@ function numericCard(s1){
   const outside = s1.kept.filter(c=>!c.p).length;
   if(outside>0) card.appendChild(el("div",{class:"note warn"},
     `${fmtN(outside)} kept clip${outside===1?" falls":"s fall"} outside the original 827 metric pool —
-     no DOVER/NISQA/AV/Audiobox scores exist for them (metrics were only computed for the 827).
-     Downstream stages count them as missing-score clips under each stage's missing policy,
+     no DOVER/NISQA/AV scores exist for them (those metrics were only computed for the 827).
+     ${AB_FULL?"Audiobox <b>does</b> cover them (full-1000 run), so the Audiobox stage filters them normally. ":""}
+     The other downstream stages count them as missing-score clips under each stage's missing policy,
      and the Gemini estimate excludes them.`));
   // histograms of the raw stats, colored by current stage-1 outcome
   const dropSet = new Set(s1.droppedClips.map(c=>c.id));
@@ -550,7 +555,7 @@ function render(){
   s0.innerHTML = `<div class="stage-head"><span class="stage-no">STAGE 0</span>
       <span class="stage-title">${full?"All clips":"Random-100 Audiobox sample"}</span></div>
     <div class="counts"><div class="c"><div class="k">clips</div><div class="v">${fmtN(s0n)}</div></div></div>
-    ${full?"":`<div class="note">100 clips randomly sampled from the 827 numeric-passed set — the only clips with Audiobox Aesthetics scores. This view exists because full-827 Audiobox scores do <b>not</b> exist; do not read these counts as full-dataset results.</div>`}`;
+    ${full?"":`<div class="note">100 clips randomly sampled from the 827 numeric-passed set — the original Audiobox random-100 sample.${AB_FULL?" Audiobox now covers all 1000 clips, so this view is kept only for comparison with the earlier random-100 run; use the “Full 1000” tab for dataset-level results.":" This view exists because full-827 Audiobox scores do <b>not</b> exist;"} do not read these counts as full-dataset results.</div>`}`;
   stagesDiv.appendChild(s0);
 
   /* Stage 1: tunable numeric filter */
@@ -571,9 +576,8 @@ function render(){
       card.innerHTML = `<div class="stage-head"><span class="stage-no">STAGE ${STAGE_NO[st.key]}</span>
           <span class="stage-title">${m.name}</span></div>
         ${countsRow(st.input, 0, st.kept)}
-        <div class="note warn">No full-827 Audiobox scores exist (only a random-100 run and a 49-clip smoke).
-        This stage is a <b>pass-through</b> in this view — switch to the “Random-100 (Audiobox)” tab to tune
-        an Audiobox threshold on the sampled subset. Random-100 results are not extrapolated here.</div>`;
+        <div class="note warn">No scores for this metric in this view — the stage is a
+        <b>pass-through</b> and drops nothing.</div>`;
       stagesDiv.appendChild(card); continue;
     }
     const head = `<div class="stage-head"><span class="stage-no">STAGE ${STAGE_NO[st.key]}</span>
@@ -619,7 +623,8 @@ function render(){
   $("#subline").textContent =
     (full
       ? "Sequential cascade over final_two_stage_1000 (1000 clips). A clip dropped at any stage never enters later stages."
-      : "Sequential cascade over the random-100 Audiobox sample. A clip dropped at any stage never enters later stages.")
+        + (AB_FULL?" Audiobox Aesthetics covers all 1000 clips and is a live, tunable stage here.":"")
+      : "Sequential cascade over the original random-100 Audiobox sample. A clip dropped at any stage never enters later stages.")
     + " Thresholds (numeric + metric) are shared between the two views.";
 }
 
@@ -651,7 +656,12 @@ $("#themeBtn").addEventListener("click", ()=>{
 });
 
 /* ---------- footer ---------- */
-$("#foot").innerHTML = `<div>static dashboard — no model is executed.</div>`;
+const ABS = D.audiobox_run_stats;
+$("#foot").innerHTML =
+  `<div>${D.clips.length} clips embedded · Audiobox scores for ${D.audiobox_n}${AB_FULL?" (full-1000 run — every clip covered)":""}</div>`
+  + (ABS ? `<div>Audiobox Aesthetics full-1000 run: <b>${fmtN(ABS.rows)} rows</b> · <b>${ABS.failures} failures</b> ·
+       <b>${ABS.seconds_per_clip} sec/clip</b> · peak VRAM <b>${fmtN(ABS.peak_vram_mib)} MiB</b> on ${ABS.gpu}</div>` : "")
+  + `<div>static dashboard — no model is executed.</div>`;
 
 readHash();
 if(state.view==="r100"){
