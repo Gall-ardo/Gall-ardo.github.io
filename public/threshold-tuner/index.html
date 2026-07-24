@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hierarchical Threshold Tuner — filtering cascade</title>
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --kept:#2a78d6; --dropped:#898781; --accent:#2a78d6; --warn-ink:#7a5200;
+  --chip:#f0efec;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+    --kept:#3987e5; --dropped:#898781; --accent:#3987e5; --warn-ink:#e0b34c;
+    --chip:#26261f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+  --kept:#3987e5; --dropped:#898781; --accent:#3987e5; --warn-ink:#e0b34c;
+  --chip:#26261f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1060px;margin:0 auto;padding:20px 20px 60px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:6px}
+h1{font-size:19px;margin:0;font-weight:650}
+.sub{color:var(--ink2);font-size:12.5px;margin:2px 0 14px}
+.spacer{flex:1}
+.tabs{display:flex;gap:2px;background:var(--chip);border-radius:8px;padding:2px}
+.tabs button{border:0;background:transparent;color:var(--ink2);font:inherit;font-size:13px;
+  padding:5px 12px;border-radius:6px;cursor:pointer}
+.tabs button.active{background:var(--surface);color:var(--ink);font-weight:600;
+  box-shadow:0 0 0 1px var(--border)}
+#themeBtn{border:1px solid var(--border);background:var(--surface);color:var(--ink2);
+  font:inherit;font-size:12.5px;padding:5px 10px;border-radius:6px;cursor:pointer}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:10px 0 22px}
+.flow .node{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:7px 12px;min-width:86px}
+.flow .node .k{font-size:11px;color:var(--muted);white-space:nowrap}
+.flow .node .v{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+.flow .node .d{font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.flow .arr{align-self:center;color:var(--muted);font-size:14px}
+.flow .node.final{border-color:var(--accent)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;margin:0}
+.connector{width:2px;height:16px;background:var(--baseline);margin:0 0 0 34px;position:relative}
+.connector::after{content:attr(data-n)" clips ↓";position:absolute;left:10px;top:-1px;
+  font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.stage-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.stage-no{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.04em}
+.stage-title{font-size:15px;font-weight:650}
+.counts{display:flex;flex-wrap:wrap;gap:22px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.counts .c .k{font-size:11px;color:var(--muted)}
+.counts .c .v{font-size:20px;font-weight:650}
+.counts .c.drop .v{color:var(--dropped)}
+.counts .c.keep .v{color:var(--kept)}
+.note{font-size:12px;color:var(--ink2);margin-top:6px}
+.note.warn{color:var(--warn-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:var(--chip);border-radius:6px;padding:3px 9px;font-size:12px;color:var(--ink2);
+  font-variant-numeric:tabular-nums}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 2px}
+.ctl label{font-size:12.5px;color:var(--ink2)}
+.ctl input[type=range]{flex:1;min-width:180px;accent-color:var(--accent)}
+.ctl input[type=number]{width:82px;font:inherit;font-variant-numeric:tabular-nums;
+  background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:6px;padding:4px 6px}
+.ctl select{font:inherit;font-size:12.5px;background:var(--surface);color:var(--ink);
+  border:1px solid var(--border);border-radius:6px;padding:3px 6px}
+.legend{display:flex;gap:16px;align-items:center;font-size:12px;color:var(--ink2);
+  margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+svg.hist{display:block;width:100%;height:150px}
+svg.hist rect.bin{cursor:default}
+.axis text{font:10.5px system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--muted)}
+.gridline{stroke:var(--grid);stroke-width:1}
+.baseline{stroke:var(--baseline);stroke-width:1}
+.thline{stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:4 3}
+.thlabel{font:10.5px system-ui;fill:var(--ink2)}
+
+.nrule{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:8px 0;
+  padding:8px 10px;border:1px solid var(--border);border-radius:8px}
+.nrule.off{opacity:.55}
+.nrule .rname{font-size:12.5px;font-weight:650;min-width:118px}
+.nrule label{font-size:12px;color:var(--ink2);white-space:nowrap}
+.nrule input[type=range]{flex:1;min-width:110px;accent-color:var(--accent)}
+.nrule input[type=number]{width:78px;font:inherit;font-variant-numeric:tabular-nums;
+  background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:6px;padding:3px 6px}
+.nrule .trig{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-left:auto;white-space:nowrap}
+.nrule input[type=checkbox]{accent-color:var(--accent)}
+.rulebtn{border:1px solid var(--border);background:var(--surface);color:var(--ink2);
+  font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer}
+.nhists{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px}
+.nhists .nh .t{font-size:11px;color:var(--muted);margin:0 0 2px;font-variant-numeric:tabular-nums}
+svg.nhist{display:block;width:100%;height:110px}
+
+.est{display:flex;flex-wrap:wrap;gap:22px;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.est .c .k{font-size:11px;color:var(--muted)}
+.est .c .v{font-size:20px;font-weight:650}
+.est .c.big .v{font-size:24px;color:var(--accent)}
+
+#tooltip{position:fixed;pointer-events:none;background:var(--surface);color:var(--ink);
+  border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);display:none;z-index:10;font-variant-numeric:tabular-nums}
+footer{margin-top:26px;font-size:11.5px;color:var(--muted)}
+footer div{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hierarchical Threshold Tuner</h1>
+    <div class="spacer"></div>
+    <div class="tabs" id="viewTabs">
+      <button data-view="full" class="active">Full 1000</button>
+      <button data-view="r100">Random-100 (Audiobox)</button>
+    </div>
+    <button id="themeBtn">theme: auto</button>
+  </header>
+  <div class="sub" id="subline"></div>
+  <div class="flow" id="flow"></div>
+  <div id="stages"></div>
+  <footer id="foot"></footer>
+</div>
+<div id="tooltip"></div>
+<script src="data.js"></script>
+<script>
+(function(){
+"use strict";
+const D = window.TUNER_DATA;
+
+/* ---------- stage definitions ---------- */
+const METRICS = {
+  dover:    {name:"DOVER++ overall",        col:"dover",    min:0, max:70,  step:0.5,  fmt:v=>v.toFixed(1)},
+  nisqa:    {name:"NISQA MOS",              col:"nisqa",    min:0, max:4.5, step:0.05, fmt:v=>v.toFixed(2)},
+  audiobox: {name:"Audiobox Aesthetics (avg of CE/CU/PC/PQ)", col:"audiobox", min:0, max:5.5, step:0.05, fmt:v=>v.toFixed(2)},
+  av:       {name:"AVBench AV consistency", col:"av",       min:0, max:1,   step:0.01, fmt:v=>v.toFixed(2)},
+};
+// cascade order after the numeric stage (spec: DOVER -> NISQA -> Audiobox -> AV)
+const ORDER = ["dover","nisqa","audiobox","av"];
+const STAGE_NO = {dover:2, nisqa:3, audiobox:4, av:5};
+
+/* numeric stage: tunable sub-rules; a clip is dropped if ANY enabled rule fires.
+   Missing raw stats (decode failures) never fire a rule — matches the official filter. */
+const NUM_DEF = D.numeric_defaults;   // {peak:0.05, rms:0.01, static:0.01, dark:20, motion:0.35}
+const NUMERIC_RULES = [
+  {id:"silent", name:"audio_silent",    parts:[{p:"peak",  col:"ap", cmp:"<", label:"audio_peak"},
+                                               {p:"rms",   col:"ar", cmp:"<", label:"audio_rms"}]},
+  {id:"static", name:"too_static",      parts:[{p:"static",col:"px", cmp:"<", label:"pixel_avg"}]},
+  {id:"dark",   name:"too_dark",        parts:[{p:"dark",  col:"lu", cmp:"<", label:"mean_luma"}]},
+  {id:"motion", name:"too_much_motion", parts:[{p:"motion",col:"px", cmp:">", label:"pixel_avg"}]},
+];
+const NUM_PARAM = {   // slider ranges per tunable parameter
+  peak:  {min:0, max:1,    step:0.001, fmt:v=>v.toFixed(3)},
+  rms:   {min:0, max:0.65, step:0.001, fmt:v=>v.toFixed(3)},
+  static:{min:0, max:0.45, step:0.001, fmt:v=>v.toFixed(3)},
+  dark:  {min:0, max:255,  step:1,     fmt:v=>v.toFixed(0)},
+  motion:{min:0, max:0.45, step:0.001, fmt:v=>v.toFixed(3)},
+};
+const NUMH = {        // numeric-stage histogram domains
+  ap:{label:"audio_peak", min:0, max:Math.max(1, D.domains.ap.max),  fmt:v=>v.toFixed(2)},
+  ar:{label:"audio_rms",  min:0, max:D.domains.ar.max,               fmt:v=>v.toFixed(2)},
+  px:{label:"pixel_avg",  min:0, max:Math.max(0.45, D.domains.px.max), fmt:v=>v.toFixed(2)},
+  lu:{label:"mean_luma",  min:0, max:255,                            fmt:v=>v.toFixed(0)},
+};
+
+/* ---------- shared state ---------- */
+const state = {
+  view:"full",
+  np:Object.assign({}, NUM_DEF),                     // numeric thresholds
+  numOn:{silent:true, static:true, dark:true, motion:true},
+  th:{dover:0, nisqa:0, audiobox:0, av:0},           // rule: drop if score < threshold
+  missingPolicy:{dover:"keep", nisqa:"keep", audiobox:"keep", av:"keep"},
+};
+const numIsDefault = ()=> NUMERIC_RULES.every(r=>state.numOn[r.id]) &&
+  Object.keys(NUM_DEF).every(k=>state.np[k]===NUM_DEF[k]);
+
+/* thresholds persist in the URL hash so a tuned setting is shareable/bookmarkable */
+function readHash(){
+  const p = new URLSearchParams(location.hash.replace(/^#/,""));
+  for(const k of ["dover","nisqa","audiobox","av"]){
+    if(p.has(k) && isFinite(+p.get(k))) state.th[k] = +p.get(k);
+    const mp = p.get("m_"+k); if(mp==="keep"||mp==="drop") state.missingPolicy[k]=mp;
+  }
+  for(const k of Object.keys(NUM_DEF))
+    if(p.has("n_"+k) && isFinite(+p.get("n_"+k))) state.np[k] = +p.get("n_"+k);
+  if(p.has("noff")) for(const id of p.get("noff").split(","))
+    if(id in state.numOn) state.numOn[id]=false;
+  if(p.get("view")==="r100") state.view="r100";
+}
+function writeHash(){
+  const p = new URLSearchParams();
+  for(const k of ["dover","nisqa","audiobox","av"]){
+    if(state.th[k]>0) p.set(k, state.th[k]);
+    if(state.missingPolicy[k]!=="keep") p.set("m_"+k, state.missingPolicy[k]);
+  }
+  for(const k of Object.keys(NUM_DEF))
+    if(state.np[k]!==NUM_DEF[k]) p.set("n_"+k, state.np[k]);
+  const off = NUMERIC_RULES.filter(r=>!state.numOn[r.id]).map(r=>r.id);
+  if(off.length) p.set("noff", off.join(","));
+  if(state.view!=="full") p.set("view", state.view);
+  history.replaceState(null,"", p.toString()? "#"+p.toString() : location.pathname);
+}
+
+/* ---------- numeric stage engine ---------- */
+function ruleFires(c, rule){
+  return rule.parts.every(part=>{
+    const v = c[part.col];
+    if(v==null) return false;                        // missing raw stat -> rule never fires
+    return part.cmp==="<" ? v < state.np[part.p] : v > state.np[part.p];
+  });
+}
+function runNumericStage(pop){
+  const triggers = {}; NUMERIC_RULES.forEach(r=>triggers[r.id]=0);
+  const kept = [], droppedClips = [];
+  for(const c of pop){
+    let dropped = false;
+    for(const r of NUMERIC_RULES){
+      if(!ruleFires(c, r)) continue;
+      triggers[r.id]++;                              // count fires even for disabled rules
+      if(state.numOn[r.id]) dropped = true;
+    }
+    (dropped ? droppedClips : kept).push(c);
+  }
+  return {input:pop.length, dropped:droppedClips.length, kept, droppedClips, triggers};
+}
+
+/* ---------- cascade engine (hierarchical: dropped clips never enter later stages) ---------- */
+function runCascade(pop, activeKeys){
+  let entering = pop;
+  const out = [];
+  for(const key of ORDER){
+    const active = activeKeys.includes(key);
+    if(!active){ out.push({key, active:false, input:entering.length, dropped:0, kept:entering.length,
+                           missing:0, scoredVals:[]}); continue; }
+    const t = state.th[key];
+    const missing = [], scored = [];
+    for(const c of entering) (c[key]==null ? missing : scored).push(c);
+    const keptScored = scored.filter(c=>c[key] >= t);
+    const dropMissing = state.missingPolicy[key]==="drop";
+    const kept = dropMissing ? keptScored : keptScored.concat(missing);
+    out.push({key, active:true, input:entering.length,
+              dropped:entering.length - kept.length, kept:kept.length,
+              missing:missing.length, missingDropped:dropMissing?missing.length:0,
+              scoredVals:scored.map(c=>c[key])});
+    entering = kept;
+  }
+  return {stages:out, final:entering.length, finalClips:entering};
+}
+
+function currentCascade(){
+  if(state.view==="full")
+    // Audiobox has no full-827 scores -> pass-through stage in this view
+    return {pop:D.clips, act:["dover","nisqa","av"]};
+  return {pop:D.clips.filter(c=>c.audiobox!=null), act:["dover","nisqa","audiobox","av"]};
+}
+
+/* ---------- Gemini keep estimate (from existing random-200 labels; no model is run) ---------- */
+function wilson(k, n, z){
+  z = z||1.96;
+  const p = k/n, z2 = z*z, den = 1+z2/n;
+  const centre = (p + z2/(2*n))/den;
+  const half = z*Math.sqrt(p*(1-p)/n + z2/(4*n*n))/den;
+  return {p, lo:Math.max(0, centre-half), hi:Math.min(1, centre+half)};
+}
+
+/* ---------- rendering ---------- */
+const $ = s=>document.querySelector(s);
+const el = (tag, attrs, html)=>{ const e=document.createElement(tag);
+  for(const k in attrs||{}) e.setAttribute(k, attrs[k]); if(html!=null) e.innerHTML=html; return e; };
+const svgel = (tag, attrs)=>{ const e=document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for(const k in attrs||{}) e.setAttribute(k, attrs[k]); return e; };
+const fmtN = n=>typeof n==="number" ? n.toLocaleString("en-US") : n;
+
+function histogram(key, vals, threshold, entering){
+  const m = METRICS[key];
+  const W=640, H=150, L=34, R=8, T=10, B=22, nb=36;
+  const svg = svgel("svg", {class:"hist", viewBox:`0 0 ${W} ${H}`, role:"img",
+    "aria-label":`${m.name} distribution of ${entering} entering clips`});
+  const bw = (m.max-m.min)/nb;
+  const bins = Array.from({length:nb},()=>({drop:0, keep:0}));
+  for(const v of vals){
+    let i = Math.floor((v-m.min)/bw); if(i>=nb)i=nb-1; if(i<0)i=0;
+    bins[i][v>=threshold?"keep":"drop"]++;
+  }
+  const maxC = Math.max(1, ...bins.map(b=>b.drop+b.keep));
+  const x = v=>L + (v-m.min)/(m.max-m.min)*(W-L-R);
+  const y = c=>T + (1-c/maxC)*(H-T-B);
+  // y gridlines (2)
+  for(const frac of [0.5, 1]){
+    const c = Math.round(maxC*frac); if(c===0) continue;
+    svg.appendChild(svgel("line",{class:"gridline",x1:L,x2:W-R,y1:y(c),y2:y(c)}));
+    const t = svgel("text",{x:L-4,y:y(c)+3.5,"text-anchor":"end"}); t.textContent=c;
+    const g = svgel("g",{class:"axis"}); g.appendChild(t); svg.appendChild(g);
+  }
+  // baseline
+  svg.appendChild(svgel("line",{class:"baseline",x1:L,x2:W-R,y1:H-B,y2:H-B}));
+  // x ticks
+  const ax = svgel("g",{class:"axis"});
+  const nt = 5;
+  for(let i=0;i<=nt;i++){
+    const v = m.min + (m.max-m.min)*i/nt;
+    const t = svgel("text",{x:x(v),y:H-B+14,"text-anchor":"middle"});
+    t.textContent = m.fmt(v); ax.appendChild(t);
+  }
+  svg.appendChild(ax);
+  // bars (stacked: dropped below, kept above, 2px gaps)
+  const colW = (W-L-R)/nb;
+  bins.forEach((b,i)=>{
+    const bx = L + i*colW + 1;
+    const w = Math.max(1, colW-2);
+    const total = b.drop+b.keep;
+    if(!total) return;
+    const lo = m.min+i*bw, hi = m.min+(i+1)*bw;
+    const mk = (cls, cnt, y0, y1, color)=>{
+      if(cnt<=0) return;
+      const r = svgel("rect",{class:"bin",x:bx,width:w,y:y1,height:Math.max(1,y0-y1),
+        fill:color,rx:2});
+      r.dataset.tip = `<b>${m.fmt(lo)} – ${m.fmt(hi)}</b><br>${cls}: ${cnt} clip${cnt===1?"":"s"}`;
+      svg.appendChild(r);
+    };
+    // dropped sits on the baseline, kept stacked above with a 2px gap
+    const yDropTop = y(b.drop);
+    mk("dropped at this stage", b.drop, H-B, yDropTop, "var(--dropped)");
+    const keepBase = b.drop? yDropTop-2 : H-B;
+    const keepTop = keepBase - (y(0)-y(b.keep));
+    mk("kept", b.keep, keepBase, keepTop, "var(--kept)");
+  });
+  // threshold line
+  if(threshold>m.min){
+    const tx = x(Math.min(threshold, m.max));
+    svg.appendChild(svgel("line",{class:"thline",x1:tx,x2:tx,y1:T,y2:H-B}));
+    const lbl = svgel("text",{class:"thlabel",x:tx+4,y:T+9});
+    lbl.textContent = "t = "+m.fmt(threshold);
+    svg.appendChild(lbl);
+  }
+  return svg;
+}
+
+/* compact histogram for a numeric raw stat; bars colored by the clip's overall
+   stage-1 outcome under the CURRENT rules (not by this column alone) */
+function numHistogram(colKey, items, thresholds){
+  const m = NUMH[colKey];
+  const W=320, H=110, L=28, R=6, T=8, B=18, nb=30;
+  const svg = svgel("svg", {class:"nhist", viewBox:`0 0 ${W} ${H}`, role:"img",
+    "aria-label":`${m.label} distribution`});
+  const bw = (m.max-m.min)/nb;
+  const bins = Array.from({length:nb},()=>({drop:0, keep:0}));
+  for(const it of items){
+    let i = Math.floor((it.v-m.min)/bw); if(i>=nb)i=nb-1; if(i<0)i=0;
+    bins[i][it.drop?"drop":"keep"]++;
+  }
+  const maxC = Math.max(1, ...bins.map(b=>b.drop+b.keep));
+  const x = v=>L + (v-m.min)/(m.max-m.min)*(W-L-R);
+  const y = c=>T + (1-c/maxC)*(H-T-B);
+  svg.appendChild(svgel("line",{class:"gridline",x1:L,x2:W-R,y1:y(maxC),y2:y(maxC)}));
+  const gt = svgel("text",{x:L-3,y:y(maxC)+3.5,"text-anchor":"end"}); gt.textContent=maxC;
+  const gg = svgel("g",{class:"axis"}); gg.appendChild(gt); svg.appendChild(gg);
+  svg.appendChild(svgel("line",{class:"baseline",x1:L,x2:W-R,y1:H-B,y2:H-B}));
+  const ax = svgel("g",{class:"axis"});
+  for(let i=0;i<=3;i++){
+    const v = m.min + (m.max-m.min)*i/3;
+    const t = svgel("text",{x:x(v),y:H-B+12,"text-anchor":i===0?"start":i===3?"end":"middle"});
+    t.textContent = m.fmt(v); ax.appendChild(t);
+  }
+  svg.appendChild(ax);
+  const colW = (W-L-R)/nb;
+  bins.forEach((b,i)=>{
+    if(!b.drop && !b.keep) return;
+    const bx = L + i*colW + 0.5, w = Math.max(1, colW-1);
+    const lo = m.min+i*bw, hi = m.min+(i+1)*bw;
+    const mk = (cls, cnt, y0, y1, color)=>{
+      if(cnt<=0) return;
+      const r = svgel("rect",{class:"bin",x:bx,width:w,y:y1,height:Math.max(1,y0-y1),fill:color,rx:1.5});
+      r.dataset.tip = `<b>${m.label} ${m.fmt(lo)} – ${m.fmt(hi)}</b><br>${cls}: ${cnt} clip${cnt===1?"":"s"}`;
+      svg.appendChild(r);
+    };
+    const yDropTop = y(b.drop);
+    mk("dropped at numeric stage", b.drop, H-B, yDropTop, "var(--dropped)");
+    const keepBase = b.drop? yDropTop-1.5 : H-B;
+    const keepTop = keepBase - (y(0)-y(b.keep));
+    mk("kept", b.keep, keepBase, keepTop, "var(--kept)");
+  });
+  for(const th of thresholds||[]){
+    if(th.t<=m.min || th.t>=m.max) continue;
+    const tx = x(th.t);
+    svg.appendChild(svgel("line",{class:"thline",x1:tx,x2:tx,y1:T,y2:H-B}));
+    const lbl = svgel("text",{class:"thlabel",x:Math.min(tx+3, W-40),y:T+8});
+    lbl.textContent = th.label;
+    svg.appendChild(lbl);
+  }
+  return svg;
+}
+
+function countsRow(input, dropped, kept){
+  return `<div class="counts">
+    <div class="c"><div class="k">input</div><div class="v">${fmtN(input)}</div></div>
+    <div class="c drop"><div class="k">dropped here</div><div class="v">−${fmtN(dropped)}</div></div>
+    <div class="c keep"><div class="k">kept after stage</div><div class="v">${fmtN(kept)}</div></div>
+  </div>`;
+}
+
+function numericCard(s1){
+  const card = el("div",{class:"card"});
+  const isDef = numIsDefault();
+  const head = `<div class="stage-head"><span class="stage-no">STAGE 1</span>
+      <span class="stage-title">Numeric hard filter (tunable)</span></div>`;
+  const defNote = isDef
+    ? `<div class="note">At these <b>default</b> thresholds the stage reproduces the official numeric
+       manifest exactly (rule: drop if <b>${D.stage1_default.rule}</b>; full view: 1000 → 827 kept).</div>`
+    : `<div class="note warn">Thresholds differ from the official defaults
+       (official full-view result: ${D.stage1_default.kept} kept / ${D.stage1_default.dropped} dropped).
+       <button class="rulebtn" id="numReset">reset numeric stage to defaults</button></div>`;
+  const rules = NUMERIC_RULES.map(r=>{
+    const on = state.numOn[r.id];
+    const parts = r.parts.map((part,pi)=>{
+      const pm = NUM_PARAM[part.p];
+      return `${pi>0?'<label style="font-weight:650">AND</label>':""}
+        <label for="np_${part.p}">${part.label} ${part.cmp==="<"?"&lt;":"&gt;"}</label>
+        <input type="range" id="np_${part.p}" data-p="${part.p}" min="${pm.min}" max="${pm.max}"
+               step="${pm.step}" value="${state.np[part.p]}" ${on?"":"disabled"}>
+        <input type="number" id="nn_${part.p}" data-p="${part.p}" min="${pm.min}" max="${pm.max}"
+               step="${pm.step}" value="${state.np[part.p]}" ${on?"":"disabled"}>`;
+    }).join("");
+    return `<div class="nrule${on?"":" off"}">
+      <input type="checkbox" id="non_${r.id}" data-r="${r.id}"${on?" checked":""}
+             title="enable/disable this rule">
+      <span class="rname">${r.name}</span>
+      ${parts}
+      <span class="trig">fires: ${fmtN(s1.triggers[r.id])}${on?"":" (rule off)"}</span>
+    </div>`;
+  }).join("");
+  const nMiss = s1.kept.filter(c=>c.px==null).length + s1.droppedClips.filter(c=>c.px==null).length;
+  const missNote = nMiss>0
+    ? `<div class="note">${nMiss} of the ${fmtN(s1.input)} entering clips have no pixel/luma stats
+       (video decode failure at scoring time) — pixel/luma rules never fire for them, matching the official filter.</div>` : "";
+  card.innerHTML = head + countsRow(s1.input, s1.dropped, s1.kept.length) + defNote +
+    rules + `<div class="chips"><span class="chip">drop if ANY enabled rule fires; rules overlap — drop total = ${fmtN(s1.dropped)}</span></div>` +
+    missNote;
+  // outside-pool warning
+  const outside = s1.kept.filter(c=>!c.p).length;
+  if(outside>0) card.appendChild(el("div",{class:"note warn"},
+    `${fmtN(outside)} kept clip${outside===1?" falls":"s fall"} outside the original 827 metric pool —
+     no DOVER/NISQA/AV/Audiobox scores exist for them (metrics were only computed for the 827).
+     Downstream stages count them as missing-score clips under each stage's missing policy,
+     and the Gemini estimate excludes them.`));
+  // histograms of the raw stats, colored by current stage-1 outcome
+  const dropSet = new Set(s1.droppedClips.map(c=>c.id));
+  const hwrap = el("div",{class:"nhists"});
+  const thFor = {ap:[{t:state.np.peak, label:"peak"}],
+                 ar:[{t:state.np.rms, label:"rms"}],
+                 px:[{t:state.np.static, label:"static"},{t:state.np.motion, label:"motion"}],
+                 lu:[{t:state.np.dark, label:"dark"}]};
+  for(const colKey of ["ap","ar","px","lu"]){
+    const items = [];
+    for(const c of s1.kept) if(c[colKey]!=null) items.push({v:c[colKey], drop:false});
+    for(const c of s1.droppedClips) if(c[colKey]!=null) items.push({v:c[colKey], drop:dropSet.has(c.id)});
+    const nh = el("div",{class:"nh"});
+    nh.appendChild(el("div",{class:"t"},NUMH[colKey].label));
+    nh.appendChild(numHistogram(colKey, items, thFor[colKey]));
+    hwrap.appendChild(nh);
+  }
+  card.appendChild(hwrap);
+  // wire controls
+  card.querySelectorAll("input[type=range][data-p]").forEach(sl=>{
+    sl.addEventListener("input", ()=>{ state.np[sl.dataset.p]=+sl.value; render(); });
+  });
+  card.querySelectorAll("input[type=number][data-p]").forEach(nm=>{
+    nm.addEventListener("change", ()=>{
+      const pm = NUM_PARAM[nm.dataset.p];
+      state.np[nm.dataset.p]=Math.min(pm.max, Math.max(pm.min, +nm.value||0)); render();
+    });
+  });
+  card.querySelectorAll("input[type=checkbox][data-r]").forEach(cb=>{
+    cb.addEventListener("change", ()=>{ state.numOn[cb.dataset.r]=cb.checked; render(); });
+  });
+  const rst = card.querySelector("#numReset");
+  if(rst) rst.addEventListener("click", ()=>{
+    state.np = Object.assign({}, NUM_DEF);
+    NUMERIC_RULES.forEach(r=>state.numOn[r.id]=true);
+    render();
+  });
+  return card;
+}
+
+function geminiCard(res){
+  const fin = res.finalClips;
+  const inPool = fin.filter(c=>c.p);
+  const outside = fin.length - inPool.length;
+  const labeled = fin.filter(c=>c.gem);
+  const k = labeled.filter(c=>c.gem==="keep").length;
+  const n = labeled.length;
+  const card = el("div",{class:"card"});
+  let estHtml, estNote;
+  if(n===0){
+    estHtml = `<div class="est"><div class="c"><div class="k">clips that would be sent</div>
+        <div class="v">${fmtN(fin.length)}</div></div>
+      <div class="c big"><div class="k">estimated Gemini keep</div><div class="v">—</div></div></div>`;
+    estNote = `<div class="note warn">Not enough labeled data to estimate for this configuration.</div>`;
+  } else {
+    const w = wilson(k, n);
+    const est = Math.round(w.p*inPool.length),
+          lo = Math.round(w.lo*inPool.length), hi = Math.round(w.hi*inPool.length);
+    estHtml = `<div class="est">
+      <div class="c"><div class="k">clips that would be sent</div><div class="v">${fmtN(fin.length)}</div></div>
+      <div class="c big"><div class="k">estimated Gemini keep</div><div class="v">≈ ${fmtN(est)}</div></div>
+      <div class="c"><div class="k">95% CI (Wilson)</div><div class="v">${fmtN(lo)} – ${fmtN(hi)}</div></div>
+      <div class="c"><div class="k">est. keep rate</div><div class="v">${(100*w.p).toFixed(1)}%</div></div>
+    </div>`;
+    const extra = outside>0
+      ? ` ${fmtN(outside)} clip${outside===1?" is":"s are"} outside the labeled sample and excluded.`
+      : n<30 ? ` Based on only ${n} labeled clips — wide uncertainty.` : "";
+    estNote = `<div class="note">Estimate only, from existing Gemini decisions on similar clips — not run here.${extra}</div>`;
+  }
+  card.innerHTML = `<div class="stage-head"><span class="stage-no">STAGE 6</span>
+      <span class="stage-title">Remaining clips → Gemini 2.5 Flash — estimated, not run</span></div>`
+    + estHtml + estNote;
+  return card;
+}
+
+function render(){
+  writeHash();
+  const cc = currentCascade();
+  const s1 = runNumericStage(cc.pop);
+  const res = runCascade(s1.kept, cc.act);
+  const stagesDiv = $("#stages"); stagesDiv.innerHTML="";
+  const flow = $("#flow"); flow.innerHTML="";
+  const addNode=(k,v,d,final)=>{
+    flow.appendChild(el("div",{class:"node"+(final?" final":"")},
+      `<div class="k">${k}</div><div class="v">${fmtN(v)}</div><div class="d">${d}</div>`));
+  };
+  const addArr=()=>flow.appendChild(el("div",{class:"arr"},"→"));
+
+  /* Stage 0 */
+  const full = state.view==="full";
+  const s0n = cc.pop.length;
+  addNode("Stage 0 · all clips", s0n, full?"final_two_stage_1000":"random-100 sample");
+  const s0 = el("div",{class:"card"});
+  s0.innerHTML = `<div class="stage-head"><span class="stage-no">STAGE 0</span>
+      <span class="stage-title">${full?"All clips":"Random-100 Audiobox sample"}</span></div>
+    <div class="counts"><div class="c"><div class="k">clips</div><div class="v">${fmtN(s0n)}</div></div></div>
+    ${full?"":`<div class="note">100 clips randomly sampled from the 827 numeric-passed set — the only clips with Audiobox Aesthetics scores. This view exists because full-827 Audiobox scores do <b>not</b> exist; do not read these counts as full-dataset results.</div>`}`;
+  stagesDiv.appendChild(s0);
+
+  /* Stage 1: tunable numeric filter */
+  addArr(); addNode("S1 · numeric filter", s1.kept.length,
+                    `−${s1.dropped} dropped${numIsDefault()?"":" (tuned)"}`);
+  stagesDiv.appendChild(el("div",{class:"connector","data-n":fmtN(s1.input)}));
+  stagesDiv.appendChild(numericCard(s1));
+
+  /* metric stages */
+  for(const st of res.stages){
+    const m = METRICS[st.key];
+    addArr();
+    addNode(`S${STAGE_NO[st.key]} · ${st.key}`, st.kept,
+            st.active?`−${st.dropped} dropped`:"pass-through");
+    stagesDiv.appendChild(el("div",{class:"connector","data-n":fmtN(st.input)}));
+    const card = el("div",{class:"card"});
+    if(!st.active){
+      card.innerHTML = `<div class="stage-head"><span class="stage-no">STAGE ${STAGE_NO[st.key]}</span>
+          <span class="stage-title">${m.name}</span></div>
+        ${countsRow(st.input, 0, st.kept)}
+        <div class="note warn">No full-827 Audiobox scores exist (only a random-100 run and a 49-clip smoke).
+        This stage is a <b>pass-through</b> in this view — switch to the “Random-100 (Audiobox)” tab to tune
+        an Audiobox threshold on the sampled subset. Random-100 results are not extrapolated here.</div>`;
+      stagesDiv.appendChild(card); continue;
+    }
+    const head = `<div class="stage-head"><span class="stage-no">STAGE ${STAGE_NO[st.key]}</span>
+        <span class="stage-title">${m.name}</span></div>`;
+    const missNote = st.missing>0 ?
+      `<div class="note">${st.missing} entering clip${st.missing===1?"":"s"} ha${st.missing===1?"s":"ve"} no ${st.key} score
+        (policy: <b>${state.missingPolicy[st.key]}</b>${state.missingPolicy[st.key]==="drop"?`, counted in dropped`:``}).</div>` : "";
+    card.innerHTML = head + countsRow(st.input, st.dropped, st.kept) + `
+      <div class="ctl">
+        <label for="sl_${st.key}">drop if score &lt;</label>
+        <input type="range" id="sl_${st.key}" min="${m.min}" max="${m.max}" step="${m.step}" value="${state.th[st.key]}">
+        <input type="number" id="nm_${st.key}" min="${m.min}" max="${m.max}" step="${m.step}" value="${state.th[st.key]}">
+        ${st.missing>0?`<select id="mp_${st.key}" title="policy for clips with no ${st.key} score">
+          <option value="keep"${state.missingPolicy[st.key]==="keep"?" selected":""}>missing → keep</option>
+          <option value="drop"${state.missingPolicy[st.key]==="drop"?" selected":""}>missing → drop</option>
+        </select>`:""}
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--kept)"></span>kept (${fmtN(st.kept - (state.missingPolicy[st.key]==="keep"?st.missing:0))} scored${state.missingPolicy[st.key]==="keep"&&st.missing?` + ${st.missing} missing`:``})</span>
+        <span><span class="sw" style="background:var(--dropped)"></span>dropped at this stage (${fmtN(st.dropped)})</span>
+      </div>` + missNote;
+    card.appendChild(histogram(st.key, st.scoredVals, state.th[st.key], st.input));
+    stagesDiv.appendChild(card);
+    // wire controls
+    const sl = card.querySelector(`#sl_${st.key}`), nm = card.querySelector(`#nm_${st.key}`);
+    sl.addEventListener("input", ()=>{ state.th[st.key]=+sl.value; render(); });
+    nm.addEventListener("change", ()=>{ state.th[st.key]=Math.min(m.max,Math.max(m.min,+nm.value||0)); render(); });
+    const mp = card.querySelector(`#mp_${st.key}`);
+    if(mp) mp.addEventListener("change", ()=>{ state.missingPolicy[st.key]=mp.value; render(); });
+  }
+
+  /* Stage 6: Gemini estimated output (not executed) */
+  const finLabeled = res.finalClips.filter(c=>c.gem);
+  const kKeep = finLabeled.filter(c=>c.gem==="keep").length;
+  const inPoolN = res.finalClips.filter(c=>c.p).length;
+  const estStr = finLabeled.length ? "≈ "+fmtN(Math.round(kKeep/finLabeled.length*inPoolN)) : "—";
+  addArr(); addNode("S6 · → Gemini 2.5 Flash", res.final, "not executed");
+  addArr(); addNode("est. Gemini keep", estStr,
+    finLabeled.length?`from ${finLabeled.length} labeled survivors`:"no labeled overlap", true);
+  stagesDiv.appendChild(el("div",{class:"connector","data-n":fmtN(res.final)}));
+  stagesDiv.appendChild(geminiCard(res));
+
+  $("#subline").textContent =
+    (full
+      ? "Sequential cascade over final_two_stage_1000 (1000 clips). A clip dropped at any stage never enters later stages."
+      : "Sequential cascade over the random-100 Audiobox sample. A clip dropped at any stage never enters later stages.")
+    + " Thresholds (numeric + metric) are shared between the two views.";
+}
+
+/* ---------- tooltip ---------- */
+const tip = $("#tooltip");
+document.addEventListener("mousemove", e=>{
+  const t = e.target;
+  if(t instanceof SVGRectElement && t.dataset.tip){
+    tip.innerHTML = t.dataset.tip; tip.style.display="block";
+    const pad=12, x=Math.min(e.clientX+pad, innerWidth-tip.offsetWidth-8),
+          y=Math.min(e.clientY+pad, innerHeight-tip.offsetHeight-8);
+    tip.style.left=x+"px"; tip.style.top=y+"px";
+  } else tip.style.display="none";
+});
+
+/* ---------- tabs & theme ---------- */
+$("#viewTabs").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-view]"); if(!b) return;
+  state.view = b.dataset.view;
+  document.querySelectorAll("#viewTabs button").forEach(x=>x.classList.toggle("active", x===b));
+  render();
+});
+const themes = ["auto","light","dark"]; let ti=0;
+$("#themeBtn").addEventListener("click", ()=>{
+  ti = (ti+1)%3; const t = themes[ti];
+  if(t==="auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  $("#themeBtn").textContent = "theme: "+t;
+});
+
+/* ---------- footer ---------- */
+$("#foot").innerHTML = `<div>static dashboard — no model is executed.</div>`;
+
+readHash();
+if(state.view==="r100"){
+  document.querySelectorAll("#viewTabs button").forEach(x=>
+    x.classList.toggle("active", x.dataset.view==="r100"));
+}
+render();
+})();
+</script>
+</body>
+</html>
