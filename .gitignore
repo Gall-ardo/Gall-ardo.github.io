@@ -11,6 +11,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Firebase Emulator Suite, written into the working tree by `npm run test:rules`
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
 # Environment
 .env
 .env.production

@@ -73,7 +73,7 @@
         <div class="subsection">
           <div class="subsection-title">
             <h2>Recent matches</h2>
-            <span class="muted">Latest 10</span>
+            <span class="muted">History</span>
           </div>
           <div id="recent-matches" class="match-list">
             <div class="empty-state">Matches will appear here once Firestore is connected.</div>
@@ -138,6 +138,68 @@
         <input id="player-name" name="playerName" type="text" minlength="2" maxlength="40" autocomplete="off" placeholder="e.g. Alex Morgan" required>
         <p class="field-help">Names are matched without regard to capitalization or extra spaces.</p>
         <button id="add-player" class="button button-primary button-wide" value="default">Add player</button>
+      </form>
+    </dialog>
+
+    <dialog id="edit-player-dialog">
+      <form id="edit-player-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Player profile</p>
+            <h2>Edit player</h2>
+          </div>
+          <button id="close-edit-player-dialog" class="icon-button" type="button" aria-label="Close">×</button>
+        </div>
+        <label for="edit-player-name">Player name</label>
+        <input id="edit-player-name" name="playerName" type="text" minlength="2" maxlength="40" autocomplete="off" required>
+        <p class="field-help">Names are matched without regard to capitalization or extra spaces. The player ID stays the same, so existing matches remain connected. Historical name snapshots in older matches are not rewritten.</p>
+        <button id="save-player-edit" class="button button-primary button-wide" type="submit">Save player</button>
+      </form>
+    </dialog>
+
+    <dialog id="edit-match-dialog">
+      <form id="edit-match-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Correct a result</p>
+            <h2>Edit match</h2>
+          </div>
+          <button id="close-edit-match-dialog" class="icon-button" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="team-grid edit-team-grid">
+          <fieldset class="team-card team-a">
+            <legend>Team A</legend>
+            <label class="score-label" for="edit-score-a">Score</label>
+            <input id="edit-score-a" class="score-input" type="number" min="0" step="1" inputmode="numeric" required>
+            <div id="edit-match-a-options" class="player-options" aria-label="Edit Team A players"></div>
+          </fieldset>
+          <fieldset class="team-card team-b">
+            <legend>Team B</legend>
+            <label class="score-label" for="edit-score-b">Score</label>
+            <input id="edit-score-b" class="score-input" type="number" min="0" step="1" inputmode="numeric" required>
+            <div id="edit-match-b-options" class="player-options" aria-label="Edit Team B players"></div>
+          </fieldset>
+        </div>
+        <p class="field-help">Saving keeps this match’s ID and original recorded time, then rebuilds all ratings and statistics from complete match history.</p>
+        <button id="save-match-edit" class="button button-primary button-wide" type="submit">Save match changes</button>
+      </form>
+    </dialog>
+
+    <dialog id="delete-player-dialog">
+      <form id="delete-player-form">
+        <div class="dialog-heading"><div><p class="eyebrow">Permanent action</p><h2>Delete player?</h2></div></div>
+        <p id="delete-player-copy"></p>
+        <p class="field-help">Deletion is checked again immediately before it is sent. Recorded matches are never deleted with a player.</p>
+        <div class="dialog-actions"><button id="cancel-delete-player" class="button button-secondary" type="button">Cancel</button><button id="confirm-delete-player" class="button button-danger" type="submit">Delete player</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="delete-match-dialog">
+      <form id="delete-match-form">
+        <div class="dialog-heading"><div><p class="eyebrow">Permanent action</p><h2>Delete match?</h2></div></div>
+        <p id="delete-match-copy"></p>
+        <p class="field-help">All ratings and statistics will be recalculated from the remaining complete match history.</p>
+        <div class="dialog-actions"><button id="cancel-delete-match" class="button button-secondary" type="button">Cancel</button><button id="confirm-delete-match" class="button button-danger" type="submit">Delete match</button></div>
       </form>
     </dialog>
 

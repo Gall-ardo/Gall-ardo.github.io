@@ -8,7 +8,10 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "node --test public/absolute-ball-knowledge/test/*.test.js",
+    "test:rules": "node --test test/firestore-rules.test.js",
+    "check:js": "for f in public/absolute-ball-knowledge/js/*.js public/absolute-ball-knowledge/test/*.test.js test/*.test.js; do node --check \"$f\" || exit 1; done"
   },
   "dependencies": {
     "astro": "^4.16.18",

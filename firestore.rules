@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // This is a deliberately unauthenticated, browser-only application. These
+    // rules validate the small data model; they do not provide identity-based ACLs.
+    // Anyone who can reach the project can write anything that satisfies the shape
+    // below, so these rules bound corruption, not authorship.
+    //
+    // Invariants the client enforces that are NOT enforced here. The first two are
+    // collection-wide, and a rule can only read the document being written plus a
+    // bounded number of explicit get()s, never a query over a collection:
+    //
+    //   1. "this player appears in no match" for a player delete. The client
+    //      re-queries both team arrays immediately before deleting, but another
+    //      browser can record a match naming that player in between, which leaves a
+    //      match referencing a player document that no longer exists. The rebuild
+    //      renders those as "Unknown player" rather than failing.
+    //   2. "no other player already holds this normalizedName" for a create or
+    //      rename. The client scans before its transaction and re-reads each
+    //      candidate by reference inside it, which closes the window against the
+    //      players it saw but not against a name claimed after the scan.
+    //   3. "no player ID appears twice inside one team." The rules language has no
+    //      way to deduplicate or iterate a list, so a team array can hold the same ID
+    //      twice as far as these rules are concerned. The neighbouring constraint,
+    //      that no player appears on *both* teams, is expressible through hasAny and
+    //      is enforced below. Duplicate IDs within a team stay a client-side check.
+    //
+    // Nor do these rules verify that a team's IDs name existing player documents;
+    // that would need one get() per member, against a list of up to twenty.
+    //
+    // Closing any of these needs a trusted backend (a Cloud Function or Admin SDK
+    // transaction) or a data model that turns the constraint into a document key,
+    // such as a playerNames/{normalizedName} reservation document. Do not relax the
+    // validation below in place of that.
+
+    // size() counts UTF-16 code units, the same unit JavaScript's String.length counts,
+    // so these bounds are the same predicate as the 2..40 checks cleanPlayerName applies
+    // in the browser -- for Turkish dotted and dotless i, combining marks, and astral
+    // characters like emoji alike. An astral character is 2 units on both sides.
+    function validPlayer(data) {
+      return validStoredPlayer(data) && data.keys().hasAll(['updatedAt']) && data.updatedAt is timestamp;
+    }
+
+    // As with matches, updatedAt is optional at rest so a player recorded before the
+    // field existed stays deletable; every write goes through validPlayer and stamps it.
+    function validStoredPlayer(data) {
+      return data.keys().hasOnly(['name', 'normalizedName', 'createdAt', 'updatedAt'])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 40
+        && data.normalizedName is string && data.normalizedName.size() >= 2 && data.normalizedName.size() <= 40
+        && data.createdAt is timestamp
+        && (!data.keys().hasAll(['updatedAt']) || data.updatedAt is timestamp);
+    }
+
+    function validTeam(team) {
+      return team is map && team.keys().hasOnly(['playerIds'])
+        && team.playerIds is list && team.playerIds.size() >= 1 && team.playerIds.size() <= 20;
+    }
+
+    // The shape a match document is allowed to hold at rest. `modelVersion` and
+    // `updatedAt` are optional here and required by validNewMatch below, because a
+    // match recorded before either field existed still has to be editable and
+    // deletable: reading an absent key raises an error and denies the whole request,
+    // so demanding them here would strand those documents permanently. Neither field
+    // can be introduced or altered by an update -- the affectedKeys allow-list on the
+    // update rule is what pins that down.
+    function validStoredMatch(data) {
+      return data.keys().hasOnly(['teamA', 'teamB', 'scoreA', 'scoreB', 'winner', 'modelVersion', 'createdAt', 'updatedAt'])
+        && validTeam(data.teamA) && validTeam(data.teamB)
+        && data.scoreA is int && data.scoreB is int && data.scoreA >= 0 && data.scoreB >= 0 && data.scoreA != data.scoreB
+        && data.winner is string && ((data.winner == 'A' && data.scoreA > data.scoreB) || (data.winner == 'B' && data.scoreB > data.scoreA))
+        && data.createdAt is timestamp
+        && (!data.keys().hasAll(['modelVersion']) || data.modelVersion == 'score_logistic_v1')
+        && (!data.keys().hasAll(['updatedAt']) || data.updatedAt is timestamp);
+    }
+
+    // Deliberately not part of validStoredMatch: that one also guards `delete`, and a
+    // document already holding an overlap has to stay deletable rather than become
+    // permanently stuck. Duplicate IDs *within* one team stay unenforceable here --
+    // rules cannot deduplicate a list -- so the client remains the only check for that.
+    function teamsAreDisjoint(data) {
+      return !data.teamA.playerIds.hasAny(data.teamB.playerIds);
+    }
+
+    // Every write the client makes stamps updatedAt, including an edit of a document
+    // that never had one.
+    function validEditedMatch(data) {
+      return validStoredMatch(data) && data.keys().hasAll(['updatedAt']) && data.updatedAt is timestamp
+        && teamsAreDisjoint(data);
+    }
+
+    // A brand new match has no excuse for omitting modelVersion.
+    function validNewMatch(data) {
+      return validEditedMatch(data) && data.keys().hasAll(['modelVersion']);
+    }
+
+    match /players/{playerId} {
+      allow read: if true;
+      allow create: if validPlayer(request.resource.data);
+      allow update: if validPlayer(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'normalizedName', 'updatedAt']);
+      // Unused-player deletion is checked in the browser only; see the note above.
+      allow delete: if validStoredPlayer(resource.data);
+    }
+
+    match /matches/{matchId} {
+      allow read: if true;
+      allow create: if validNewMatch(request.resource.data);
+      // modelVersion is immutable by omission from the allow-list: adding it to a
+      // document that lacks it, or changing it, both register as an affected key.
+      // Comparing it across resource and request.resource instead would raise an
+      // error on the documents that predate the field, denying edits outright.
+      allow update: if validEditedMatch(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teamA', 'teamB', 'scoreA', 'scoreB', 'winner', 'updatedAt']);
+      allow delete: if validStoredMatch(resource.data);
+    }
+  }
+}

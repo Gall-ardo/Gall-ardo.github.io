@@ -2,20 +2,37 @@ import {
   collection,
   db,
   doc,
+  getDocs,
   isFirebaseConfigured,
   missingFirebaseConfigKeys,
   onSnapshot,
+  query,
   runTransaction,
-  setDoc,
   serverTimestamp,
+  where,
 } from "./firebase.js";
 import {
   balanceTeams,
-  normalizePlayerName,
 } from "./logic.js";
-import { MODEL_VERSION, predictMatch, rebuildFromHistory, validateMatch } from "./rating-model.js";
+import { MODEL_VERSION, predictMatch, rebuildFromHistory } from "./rating-model.js";
+import {
+  cleanPlayerName,
+  conflictExists,
+  deleteMatch,
+  deleteUnusedPlayer,
+  documentVersion,
+  editMatch,
+  findMatchReferences,
+  findNameConflicts,
+  renamePlayer,
+  validateEditableMatch,
+} from "./mutations.js";
 
-const state = { rawPlayers: [], players: [], matches: [], fit: null, teamA: new Set(), teamB: new Set() };
+const firestoreApi = { collection, doc, getDocs, query, runTransaction, serverTimestamp, where };
+const state = {
+  rawPlayers: [], players: [], matches: [], fit: null, teamA: new Set(), teamB: new Set(),
+  pending: new Set(), editingPlayer: null, editingMatch: null, deletingPlayer: null, deletingMatch: null,
+};
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -40,6 +57,33 @@ function setBusy(button, busy, busyLabel) {
   if (!button.dataset.label) button.dataset.label = button.textContent;
   button.disabled = busy;
   button.textContent = busy ? busyLabel : button.dataset.label;
+}
+
+/**
+ * A form submitted again before its first write settles would send the second
+ * request with the version it read before the first one landed, and report the
+ * user's own change back as somebody else's conflict. Re-entrant submits are
+ * dropped rather than queued.
+ */
+const submitting = new Set();
+function onSubmit(formId, handler) {
+  $(`#${formId}`).addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (submitting.has(formId)) return;
+    submitting.add(formId);
+    try { await handler(event); } finally { submitting.delete(formId); }
+  });
+}
+
+function actionBusy(key) { return state.pending.has(key); }
+function setActionBusy(key, busy) {
+  if (busy) state.pending.add(key); else state.pending.delete(key);
+  renderLeaderboard(); renderMatches();
+}
+
+function matchIds(match, side) {
+  const team = match[side];
+  return Array.isArray(team) ? team : team?.playerIds || team?.players?.map((player) => player.id) || [];
 }
 
 function playerOption(player, side, checked, disabled) {
@@ -77,7 +121,9 @@ function renderLeaderboard() {
     const winRate = player.games ? `${Math.round((player.wins / player.games) * 100)}%` : "—";
     return `<tr>
       <td class="rank">${index + 1}</td>
-      <td>${escapeHtml(player.name)}${player.provisional ? " <span class=\"muted\">(provisional)</span>" : ""}</td>
+      <td><span class="player-cell"><span>${escapeHtml(player.name)}${player.provisional ? " <span class=\"muted\">(provisional)</span>" : ""}</span>
+        <span class="row-actions"><button class="text-action" type="button" data-edit-player="${escapeHtml(player.id)}" ${actionBusy(`player:${player.id}`) ? "disabled" : ""}>Edit</button><button class="text-action is-danger" type="button" data-delete-player="${escapeHtml(player.id)}" ${actionBusy(`player:${player.id}`) ? "disabled" : ""}>Delete</button></span>
+      </span></td>
       <td><strong>${player.rating}</strong></td>
       <td>${player.games}</td><td>${player.wins}</td><td>${player.losses}</td><td>${winRate}</td>
     </tr>`;
@@ -94,12 +140,13 @@ function renderMatches() {
     const date = match.createdAt?.toDate?.();
     const dateText = date ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date) : "Saving…";
     const names = (ids) => ids.map((id) => state.rawPlayers.find((player) => player.id === id)?.name || "Unknown player").join(", ");
-    const aNames = names(match.teamA.playerIds || match.teamA.players?.map((p) => p.id) || []);
-    const bNames = names(match.teamB.playerIds || match.teamB.players?.map((p) => p.id) || []);
+    const aNames = names(matchIds(match, "teamA"));
+    const bNames = names(matchIds(match, "teamB"));
     return `<article class="match-row">
       <div class="match-side"><strong>${escapeHtml(aNames)}</strong><span class="match-meta">${dateText}</span></div>
       <div class="match-score">${match.scoreA}–${match.scoreB}</div>
       <div class="match-side"><strong>${escapeHtml(bNames)}</strong><span class="match-meta">${escapeHtml(match.modelVersion || "legacy match")}</span></div>
+      <div class="match-actions row-actions"><button class="text-action" type="button" data-edit-match="${escapeHtml(match.id)}" ${actionBusy(`match:${match.id}`) ? "disabled" : ""}>Edit</button><button class="text-action is-danger" type="button" data-delete-match="${escapeHtml(match.id)}" ${actionBusy(`match:${match.id}`) ? "disabled" : ""}>Delete</button></div>
     </article>`;
   }).join("");
 }
@@ -130,17 +177,26 @@ async function playerDocumentId(normalizedName) {
 }
 
 async function addPlayer(name) {
-  const cleanName = String(name).trim().replace(/\s+/g, " ");
-  const normalizedName = normalizePlayerName(cleanName);
-  if (cleanName.length < 2 || cleanName.length > 40) throw new Error("Use a name between 2 and 40 characters.");
-  if (!/[\p{L}\p{N}]/u.test(cleanName)) throw new Error("The name must contain a letter or number.");
+  const { name: cleanName, normalizedName } = cleanPlayerName(name);
 
   const id = await playerDocumentId(normalizedName);
   const playerRef = doc(db, "players", id);
+  // A renamed player retains their old, name-derived ID. Use an automatic ID if
+  // that old ID is occupied by somebody with a different current name.
+  const fallbackRef = doc(collection(db, "players"));
+  // Scanned before the transaction opens: a transaction can only read document
+  // references, not queries. See findNameConflicts.
+  const conflicts = await findNameConflicts(firestoreApi, db, normalizedName);
   await runTransaction(db, async (transaction) => {
-    const existing = await transaction.get(playerRef);
-    if (existing.exists()) throw new Error("That player already exists.");
-    transaction.set(playerRef, {
+    const [existing, ...conflictSnapshots] = await Promise.all([
+      transaction.get(playerRef),
+      ...conflicts.map((reference) => transaction.get(reference)),
+    ]);
+    if (conflictExists(conflictSnapshots, normalizedName)) throw new Error("That player already exists.");
+    if (existing.exists() && existing.data()?.normalizedName === normalizedName) throw new Error("That player already exists.");
+    const target = existing.exists() ? fallbackRef : playerRef;
+    if (existing.exists() && (await transaction.get(fallbackRef)).exists()) throw new Error("Could not allocate a player ID. Please try again.");
+    transaction.set(target, {
       name: cleanName,
       normalizedName,
       createdAt: serverTimestamp(),
@@ -161,10 +217,15 @@ async function saveMatch(scoreA, scoreB) {
 
   const matchRef = doc(collection(db, "matches"));
   const byId = new Map(state.players.map((player) => [player.id, player]));
-  const match = { scoreA, scoreB, teamA: teamAIds, teamB: teamBIds };
-  validateMatch(match, new Set(byId.keys()));
-  await setDoc(matchRef, { ...match, winner: scoreA > scoreB ? "A" : "B", modelVersion: MODEL_VERSION,
-    teamA: { playerIds: teamAIds }, teamB: { playerIds: teamBIds }, createdAt: serverTimestamp() });
+  // Shares the edit path's validation so a new match and an edited one are held to the
+  // same bounds, including the per-team ceiling the security rules enforce.
+  const match = validateEditableMatch({ scoreA, scoreB, teamA: teamAIds, teamB: teamBIds }, new Set(byId.keys()));
+  await runTransaction(db, async (transaction) => {
+    const snapshots = await Promise.all([...teamAIds, ...teamBIds].map((id) => transaction.get(doc(db, "players", id))));
+    if (snapshots.some((snapshot) => !snapshot.exists())) throw new Error("One or more selected players no longer exist. Refresh and choose again.");
+    transaction.set(matchRef, { ...match, winner: scoreA > scoreB ? "A" : "B", modelVersion: MODEL_VERSION,
+      teamA: { playerIds: teamAIds }, teamB: { playerIds: teamBIds }, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  });
 }
 
 function rebuildState() {
@@ -230,8 +291,7 @@ $$("[data-open-player]").forEach((button) => button.addEventListener("click", ()
 }));
 $("#close-player-dialog").addEventListener("click", () => $("#player-dialog").close());
 
-$("#player-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+onSubmit("player-form", async () => {
   const button = $("#add-player");
   setBusy(button, true, "Adding…");
   try {
@@ -257,8 +317,7 @@ $("#record").addEventListener("change", (event) => {
 $("#score-a").addEventListener("input", updateMatchPreview);
 $("#score-b").addEventListener("input", updateMatchPreview);
 
-$("#match-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+onSubmit("match-form", async (event) => {
   if (!isFirebaseConfigured) return showMessage("Add your Firebase Web config before saving matches.", "error");
   const button = $("#save-match");
   setBusy(button, true, "Saving atomically…");
@@ -299,6 +358,161 @@ function generatedTeamHtml(name, players, average) {
     <ol>${players.map((player) => `<li>${escapeHtml(player.name)} <span class="muted">(${player.rating})</span></li>`).join("")}</ol>
   </article>`;
 }
+
+function playerById(id) { return state.rawPlayers.find((player) => player.id === id); }
+
+function playerNames(ids) {
+  return ids.map((id) => playerById(id)?.name || "Unknown player").join(", ");
+}
+
+function openPlayerEditor(player) {
+  state.editingPlayer = player;
+  $("#edit-player-name").value = player.name;
+  $("#edit-player-dialog").showModal();
+  setTimeout(() => $("#edit-player-name").focus(), 0);
+}
+
+function renderMatchEditor(match) {
+  const a = new Set(matchIds(match, "teamA"));
+  const b = new Set(matchIds(match, "teamB"));
+  const options = state.players.slice().sort((left, right) => left.name.localeCompare(right.name));
+  const option = (player, side) => `<label class="check-option"><input type="checkbox" data-edit-side="${side}" data-edit-player-id="${escapeHtml(player.id)}" ${side === "a" ? (a.has(player.id) ? "checked" : "") : (b.has(player.id) ? "checked" : "")}><span>${escapeHtml(player.name)}</span><small>${player.rating}</small></label>`;
+  $("#edit-match-a-options").innerHTML = options.map((player) => option(player, "a")).join("");
+  $("#edit-match-b-options").innerHTML = options.map((player) => option(player, "b")).join("");
+  $("#edit-score-a").value = match.scoreA;
+  $("#edit-score-b").value = match.scoreB;
+}
+
+function openMatchEditor(match) {
+  state.editingMatch = match;
+  renderMatchEditor(match);
+  $("#edit-match-dialog").showModal();
+}
+
+async function confirmPlayerDeletion(player) {
+  const key = `player:${player.id}`;
+  setActionBusy(key, true);
+  try {
+    const references = await findMatchReferences(firestoreApi, db, player.id);
+    if (references.length) return showMessage("This player cannot be deleted because they appear in recorded matches.", "error");
+    state.deletingPlayer = player;
+    $("#delete-player-copy").textContent = `Delete ${player.name}? This only removes the player profile.`;
+    $("#delete-player-dialog").showModal();
+  } catch (error) {
+    showMessage(error.message, "error");
+  } finally {
+    setActionBusy(key, false);
+  }
+}
+
+function openMatchDelete(match) {
+  state.deletingMatch = match;
+  $("#delete-match-copy").textContent = `Delete ${playerNames(matchIds(match, "teamA"))} ${match.scoreA}–${match.scoreB} ${playerNames(matchIds(match, "teamB"))}?`;
+  $("#delete-match-dialog").showModal();
+}
+
+$("#leaderboard-body").addEventListener("click", (event) => {
+  const edit = event.target.closest("[data-edit-player]");
+  const remove = event.target.closest("[data-delete-player]");
+  if (edit) {
+    const player = playerById(edit.dataset.editPlayer);
+    if (player) openPlayerEditor(player); else showMessage("This player was already deleted by another browser.", "error");
+  }
+  if (remove) {
+    const player = playerById(remove.dataset.deletePlayer);
+    if (player) confirmPlayerDeletion(player); else showMessage("This player was already deleted by another browser.", "error");
+  }
+});
+
+$("#recent-matches").addEventListener("click", (event) => {
+  const edit = event.target.closest("[data-edit-match]");
+  const remove = event.target.closest("[data-delete-match]");
+  if (edit) {
+    const match = state.matches.find((item) => item.id === edit.dataset.editMatch);
+    if (match) openMatchEditor(match); else showMessage("This match was already deleted by another browser.", "error");
+  }
+  if (remove) {
+    const match = state.matches.find((item) => item.id === remove.dataset.deleteMatch);
+    if (match) openMatchDelete(match); else showMessage("This match was already deleted by another browser.", "error");
+  }
+});
+
+$("#close-edit-player-dialog").addEventListener("click", () => $("#edit-player-dialog").close());
+onSubmit("edit-player-form", async () => {
+  const player = state.editingPlayer;
+  if (!player) return;
+  const button = $("#save-player-edit");
+  setBusy(button, true, "Saving…");
+  try {
+    await renamePlayer({ api: firestoreApi, db, playerId: player.id, nextName: $("#edit-player-name").value, expectedVersion: documentVersion(player) });
+    $("#edit-player-dialog").close();
+    showMessage("Player renamed. Existing matches keep their player IDs; historical name snapshots, if any, remain unchanged.");
+  } catch (error) {
+    showMessage(error.message, "error");
+  } finally {
+    setBusy(button, false);
+  }
+});
+
+$("#close-edit-match-dialog").addEventListener("click", () => $("#edit-match-dialog").close());
+$("#edit-match-dialog").addEventListener("change", (event) => {
+  const checkbox = event.target.closest("[data-edit-player-id]");
+  if (!checkbox || !checkbox.checked) return;
+  const other = checkbox.dataset.editSide === "a" ? "b" : "a";
+  $$(`[data-edit-side="${other}"][data-edit-player-id="${checkbox.dataset.editPlayerId}"]`).forEach((item) => { item.checked = false; });
+});
+onSubmit("edit-match-form", async () => {
+  const match = state.editingMatch;
+  if (!match) return;
+  const key = `match:${match.id}`;
+  const button = $("#save-match-edit");
+  setBusy(button, true, "Saving…"); setActionBusy(key, true);
+  try {
+    const teamA = $$('[data-edit-side="a"]:checked').map((item) => item.dataset.editPlayerId);
+    const teamB = $$('[data-edit-side="b"]:checked').map((item) => item.dataset.editPlayerId);
+    await editMatch({ api: firestoreApi, db, matchId: match.id, expectedVersion: documentVersion(match), input: { teamA, teamB, scoreA: $("#edit-score-a").value, scoreB: $("#edit-score-b").value } });
+    $("#edit-match-dialog").close();
+    showMessage("Match updated. Ratings and statistics have been rebuilt from complete history.");
+  } catch (error) {
+    showMessage(error.message, "error");
+  } finally {
+    setBusy(button, false); setActionBusy(key, false);
+  }
+});
+
+$("#cancel-delete-player").addEventListener("click", () => $("#delete-player-dialog").close());
+onSubmit("delete-player-form", async () => {
+  const player = state.deletingPlayer;
+  if (!player) return;
+  const key = `player:${player.id}`; const button = $("#confirm-delete-player");
+  setBusy(button, true, "Deleting…"); setActionBusy(key, true);
+  try {
+    await deleteUnusedPlayer({ api: firestoreApi, db, playerId: player.id, expectedVersion: documentVersion(player) });
+    $("#delete-player-dialog").close();
+    showMessage("Player deleted.");
+  } catch (error) {
+    showMessage(error.message, "error");
+  } finally {
+    setBusy(button, false); setActionBusy(key, false);
+  }
+});
+
+$("#cancel-delete-match").addEventListener("click", () => $("#delete-match-dialog").close());
+onSubmit("delete-match-form", async () => {
+  const match = state.deletingMatch;
+  if (!match) return;
+  const key = `match:${match.id}`; const button = $("#confirm-delete-match");
+  setBusy(button, true, "Deleting…"); setActionBusy(key, true);
+  try {
+    await deleteMatch({ api: firestoreApi, db, matchId: match.id, expectedVersion: documentVersion(match) });
+    $("#delete-match-dialog").close();
+    showMessage("Match deleted. All ratings and statistics have been rebuilt from remaining history.");
+  } catch (error) {
+    showMessage(error.message, "error");
+  } finally {
+    setBusy(button, false); setActionBusy(key, false);
+  }
+});
 
 if (!isFirebaseConfigured) {
   connectionStatus.textContent = "Setup required";
