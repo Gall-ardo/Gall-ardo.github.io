@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173d36">
+    <meta name="description" content="Shared office foosball matches, history-rebuilt ratings, and balanced teams.">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>Absolute Ball Knowledge</title>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="./" aria-label="Absolute Ball Knowledge home">
+          <span class="brand-mark" aria-hidden="true">ABK</span>
+          <span>
+            <strong>Absolute Ball Knowledge</strong>
+            <small>Office foosball, settled properly.</small>
+          </span>
+        </a>
+        <span id="connection-status" class="connection-status" role="status">Connecting…</span>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <nav class="tabs" aria-label="Main sections">
+        <button class="tab is-active" type="button" data-tab="record" aria-controls="record" aria-selected="true">
+          Record Match
+        </button>
+        <button class="tab" type="button" data-tab="teams" aria-controls="teams" aria-selected="false">
+          Create Teams
+        </button>
+        <button class="tab" type="button" data-tab="leaderboard" aria-controls="leaderboard" aria-selected="false">
+          Leaderboard
+        </button>
+      </nav>
+
+      <div id="global-message" class="message" role="status" aria-live="polite" hidden></div>
+
+      <section id="record" class="panel tab-panel is-active" aria-labelledby="record-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Match day</p>
+            <h1 id="record-title">Record a match</h1>
+          </div>
+          <button class="button button-secondary" type="button" data-open-player>Add player</button>
+        </div>
+
+        <form id="match-form">
+          <div class="team-grid">
+            <fieldset class="team-card team-a">
+              <legend>Team A</legend>
+              <label class="score-label" for="score-a">Score</label>
+              <input id="score-a" class="score-input" name="scoreA" type="number" min="0" step="1" inputmode="numeric" required>
+              <div id="team-a-options" class="player-options" aria-label="Choose Team A players"></div>
+            </fieldset>
+
+            <div class="versus" aria-hidden="true">VS</div>
+
+            <fieldset class="team-card team-b">
+              <legend>Team B</legend>
+              <label class="score-label" for="score-b">Score</label>
+              <input id="score-b" class="score-input" name="scoreB" type="number" min="0" step="1" inputmode="numeric" required>
+              <div id="team-b-options" class="player-options" aria-label="Choose Team B players"></div>
+            </fieldset>
+          </div>
+          <p id="match-preview" class="calculation-note">Select players to preview the current rebuilt rating probability.</p>
+          <button id="save-match" class="button button-primary button-wide" type="submit">Save match</button>
+        </form>
+
+        <div class="subsection">
+          <div class="subsection-title">
+            <h2>Recent matches</h2>
+            <span class="muted">Latest 10</span>
+          </div>
+          <div id="recent-matches" class="match-list">
+            <div class="empty-state">Matches will appear here once Firestore is connected.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="teams" class="panel tab-panel" aria-labelledby="teams-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Fair sides, fast</p>
+            <h1 id="teams-title">Create balanced teams</h1>
+            <p>Select at least two participants. Every selected player will be used.</p>
+          </div>
+        </div>
+        <form id="team-generator-form">
+          <div id="participant-options" class="participant-grid"></div>
+          <button id="generate-teams" class="button button-primary button-wide" type="submit">Create teams</button>
+        </form>
+        <div id="generated-result" class="generated-result" hidden></div>
+      </section>
+
+      <section id="leaderboard" class="panel tab-panel" aria-labelledby="leaderboard-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">The table never lies</p>
+            <h1 id="leaderboard-title">Leaderboard</h1>
+            <p>Ratings are recalculated from complete match history, so inactive-player ratings can move when new results add context.</p>
+          </div>
+          <button class="button button-secondary" type="button" data-open-player>Add player</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Player</th>
+                <th scope="col">Rating</th>
+                <th scope="col">Games</th>
+                <th scope="col">W</th>
+                <th scope="col">L</th>
+                <th scope="col">Win rate</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+          <div id="leaderboard-empty" class="empty-state">No players yet. Add the first one.</div>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="player-dialog">
+      <form id="player-form" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">New challenger</p>
+            <h2>Add a player</h2>
+          </div>
+          <button id="close-player-dialog" class="icon-button" type="button" aria-label="Close">×</button>
+        </div>
+        <label for="player-name">Player name</label>
+        <input id="player-name" name="playerName" type="text" minlength="2" maxlength="40" autocomplete="off" placeholder="e.g. Alex Morgan" required>
+        <p class="field-help">Names are matched without regard to capitalization or extra spaces.</p>
+        <button id="add-player" class="button button-primary button-wide" value="default">Add player</button>
+      </form>
+    </dialog>
+
+    <footer>
+      <p>Powered by shared Firestore data · No account required</p>
+    </footer>
+
+    <noscript>This app requires JavaScript to connect to Firestore.</noscript>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
