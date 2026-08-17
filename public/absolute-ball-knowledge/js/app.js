@@ -1,90 +1,41 @@
-import {
-  collection,
-  db,
-  doc,
-  getDocs,
-  isFirebaseConfigured,
-  missingFirebaseConfigKeys,
-  onSnapshot,
-  query,
-  runTransaction,
-  serverTimestamp,
-  where,
-} from "./firebase.js";
-import {
-  balanceTeams,
-} from "./logic.js";
-import { MODEL_VERSION, predictMatch, rebuildFromHistory } from "./rating-model.js";
+import { collection, db, doc, isFirebaseConfigured, missingFirebaseConfigKeys, runTransaction, serverTimestamp } from "./firebase.js";
+import { firestoreApi } from "./firestore-api.js";
+import { TEAM_OPTION_LIMIT, teamOptions } from "./logic.js";
+import { MODEL_VERSION, predictMatch } from "./rating-model.js";
+import { createStore } from "./store.js";
+import { createRatingChart } from "./rating-chart.js";
+import { MAIN_PAGE_MATCH_LIMIT, renderMatchList } from "./match-list.js";
+import { mountMatchAdmin } from "./match-admin.js";
 import {
   cleanPlayerName,
   conflictExists,
-  deleteMatch,
   deleteUnusedPlayer,
   documentVersion,
-  editMatch,
   findMatchReferences,
   findNameConflicts,
   renamePlayer,
   validateEditableMatch,
 } from "./mutations.js";
+import { $, $$, createMessage, escapeHtml, linkLocalMode, onSubmit, setBusy } from "./ui.js";
 
-const firestoreApi = { collection, doc, getDocs, query, runTransaction, serverTimestamp, where };
-const state = {
-  rawPlayers: [], players: [], matches: [], fit: null, teamA: new Set(), teamB: new Set(),
-  pending: new Set(), editingPlayer: null, editingMatch: null, deletingPlayer: null, deletingMatch: null,
-};
-const $ = (selector, root = document) => root.querySelector(selector);
-const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const store = createStore();
+// UI-only selections live alongside the shared snapshot the store owns, so every
+// render reads one object. Only the store ever writes rawPlayers/players/matches/fit.
+const state = Object.assign(store.state, {
+  teamA: new Set(),
+  teamB: new Set(),
+  editingPlayer: null,
+  deletingPlayer: null,
+  // The generated splits currently on screen. Local UI state only: generating teams
+  // never touches Firestore, and choosing one only preselects the Record Match form.
+  generatedOptions: [],
+});
 
-const globalMessage = $("#global-message");
 const connectionStatus = $("#connection-status");
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
-  })[character]);
-}
-
-function showMessage(text, type = "success") {
-  globalMessage.textContent = text;
-  globalMessage.className = `message ${type === "error" ? "is-error" : ""}`;
-  globalMessage.hidden = false;
-  clearTimeout(showMessage.timer);
-  showMessage.timer = setTimeout(() => { globalMessage.hidden = true; }, 6500);
-}
-
-function setBusy(button, busy, busyLabel) {
-  if (!button.dataset.label) button.dataset.label = button.textContent;
-  button.disabled = busy;
-  button.textContent = busy ? busyLabel : button.dataset.label;
-}
-
-/**
- * A form submitted again before its first write settles would send the second
- * request with the version it read before the first one landed, and report the
- * user's own change back as somebody else's conflict. Re-entrant submits are
- * dropped rather than queued.
- */
-const submitting = new Set();
-function onSubmit(formId, handler) {
-  $(`#${formId}`).addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (submitting.has(formId)) return;
-    submitting.add(formId);
-    try { await handler(event); } finally { submitting.delete(formId); }
-  });
-}
-
-function actionBusy(key) { return state.pending.has(key); }
-function setActionBusy(key, busy) {
-  if (busy) state.pending.add(key); else state.pending.delete(key);
-  renderLeaderboard(); renderMatches();
-}
-
-function matchIds(match, side) {
-  const team = match[side];
-  return Array.isArray(team) ? team : team?.playerIds || team?.players?.map((player) => player.id) || [];
-}
+const showMessage = createMessage($("#global-message"));
+const matchAdmin = mountMatchAdmin({ store, showMessage });
+const ratingChart = createRatingChart($("#rating-history"));
+linkLocalMode();
 
 function playerOption(player, side, checked, disabled) {
   return `
@@ -119,10 +70,11 @@ function renderLeaderboard() {
   $("#leaderboard-empty").hidden = players.length > 0;
   $("#leaderboard-body").innerHTML = players.map((player, index) => {
     const winRate = player.games ? `${Math.round((player.wins / player.games) * 100)}%` : "—";
+    const busy = store.isPending(`player:${player.id}`) ? "disabled" : "";
     return `<tr>
       <td class="rank">${index + 1}</td>
       <td><span class="player-cell"><span>${escapeHtml(player.name)}${player.provisional ? " <span class=\"muted\">(provisional)</span>" : ""}</span>
-        <span class="row-actions"><button class="text-action" type="button" data-edit-player="${escapeHtml(player.id)}" ${actionBusy(`player:${player.id}`) ? "disabled" : ""}>Edit</button><button class="text-action is-danger" type="button" data-delete-player="${escapeHtml(player.id)}" ${actionBusy(`player:${player.id}`) ? "disabled" : ""}>Delete</button></span>
+        <span class="row-actions"><button class="text-action" type="button" data-edit-player="${escapeHtml(player.id)}" ${busy}>Edit</button><button class="text-action is-danger" type="button" data-delete-player="${escapeHtml(player.id)}" ${busy}>Delete</button></span>
       </span></td>
       <td><strong>${player.rating}</strong></td>
       <td>${player.games}</td><td>${player.wins}</td><td>${player.losses}</td><td>${winRate}</td>
@@ -130,25 +82,51 @@ function renderLeaderboard() {
   }).join("");
 }
 
+/**
+ * The main page renders the newest five only. `state.matches` still holds every
+ * recorded match, and every rating figure on the page is fitted from all of them;
+ * this is a slice for the eye, and "Show all" links to the full history page.
+ */
 function renderMatches() {
-  const container = $("#recent-matches");
-  if (!state.matches.length) {
-    container.innerHTML = '<div class="empty-state">No matches recorded yet.</div>';
-    return;
-  }
-  container.innerHTML = state.matches.map((match) => {
-    const date = match.createdAt?.toDate?.();
-    const dateText = date ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date) : "Saving…";
-    const names = (ids) => ids.map((id) => state.rawPlayers.find((player) => player.id === id)?.name || "Unknown player").join(", ");
-    const aNames = names(matchIds(match, "teamA"));
-    const bNames = names(matchIds(match, "teamB"));
-    return `<article class="match-row">
-      <div class="match-side"><strong>${escapeHtml(aNames)}</strong><span class="match-meta">${dateText}</span></div>
-      <div class="match-score">${match.scoreA}–${match.scoreB}</div>
-      <div class="match-side"><strong>${escapeHtml(bNames)}</strong><span class="match-meta">${escapeHtml(match.modelVersion || "legacy match")}</span></div>
-      <div class="match-actions row-actions"><button class="text-action" type="button" data-edit-match="${escapeHtml(match.id)}" ${actionBusy(`match:${match.id}`) ? "disabled" : ""}>Edit</button><button class="text-action is-danger" type="button" data-delete-match="${escapeHtml(match.id)}" ${actionBusy(`match:${match.id}`) ? "disabled" : ""}>Delete</button></div>
-    </article>`;
-  }).join("");
+  renderMatchList($("#recent-matches"), state.matches.slice(0, MAIN_PAGE_MATCH_LIMIT), {
+    nameFor: (id) => store.playerName(id),
+    isPending: (key) => store.isPending(key),
+  });
+  const total = state.matches.length;
+  $("#match-count").textContent = total > MAIN_PAGE_MATCH_LIMIT
+    ? `Latest ${MAIN_PAGE_MATCH_LIMIT} of ${total}`
+    : `${total} recorded`;
+  $("#show-all-matches").hidden = total === 0;
+}
+
+function renderRatingHistory() {
+  ratingChart.update(store.ratingHistory(), (id) => store.playerName(id));
+}
+
+/**
+ * The Leaderboard panel holds two views of the same fit -- the numeric table and the
+ * Rating History chart -- and shows exactly one of them. This is local UI state only:
+ * nothing about the choice is stored, and neither view changes what is computed. The
+ * hidden view stays in the DOM, so switching back is a visibility flip, not a render.
+ *
+ * The chart cannot measure itself while hidden; its ResizeObserver redraws it the
+ * moment it gains a width, which is the same path the main tab switch already uses.
+ */
+function setLeaderboardView(view) {
+  $$(".segment").forEach((segment) => {
+    const active = segment.dataset.view === view;
+    segment.classList.toggle("is-active", active);
+    segment.setAttribute("aria-selected", String(active));
+    segment.tabIndex = active ? 0 : -1;
+    $(`#${segment.getAttribute("aria-controls")}`).hidden = !active;
+  });
+}
+
+function renderAll() {
+  renderPlayerSelectors();
+  renderLeaderboard();
+  renderMatches();
+  renderRatingHistory();
 }
 
 function selectedPlayers(ids) {
@@ -228,61 +206,30 @@ async function saveMatch(scoreA, scoreB) {
   });
 }
 
-function rebuildState() {
-  try {
-    const valid = state.matches.filter((match) => match.createdAt?.toDate instanceof Function);
-    const rebuilt = rebuildFromHistory(state.rawPlayers, valid, { requireTimestamp: true });
-    state.players = rebuilt.players; state.fit = rebuilt; renderPlayerSelectors(); renderLeaderboard(); renderMatches();
-  } catch (error) { console.error(error); showMessage(`History validation error: ${error.message}`, "error"); }
-}
-
-function subscribeToData() {
-  let playersReady = false;
-  let matchesReady = false;
-  const connected = () => {
-    if (playersReady && matchesReady) {
-      connectionStatus.textContent = "Live";
-      connectionStatus.className = "connection-status is-online";
-    }
-  };
-  const fail = (error) => {
-    console.error(error);
-    connectionStatus.textContent = "Connection error";
-    connectionStatus.className = "connection-status is-error";
-    showMessage(`Firebase error: ${error.message}`, "error");
-  };
-
-  onSnapshot(collection(db, "players"), (snapshot) => {
-    state.rawPlayers = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-    state.players = state.rawPlayers;
-    const ids = new Set(state.players.map((p) => p.id));
-    state.teamA = new Set([...state.teamA].filter((id) => ids.has(id)));
-    state.teamB = new Set([...state.teamB].filter((id) => ids.has(id)));
-    rebuildState();
-    playersReady = true;
-    connected();
-  }, fail);
-
-  onSnapshot(collection(db, "matches"), (snapshot) => {
-    state.matches = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-    rebuildState();
-    matchesReady = true;
-    connected();
-  }, fail);
-}
-
-$$(".tab").forEach((tab) => tab.addEventListener("click", () => {
+function activateTab(id) {
   $$(".tab").forEach((item) => {
-    const active = item === tab;
+    const active = item.dataset.tab === id;
     item.classList.toggle("is-active", active);
     item.setAttribute("aria-selected", String(active));
   });
   $$(".tab-panel").forEach((panel) => {
-    const active = panel.id === tab.dataset.tab;
+    const active = panel.id === id;
     panel.classList.toggle("is-active", active);
     panel.hidden = !active;
   });
-}));
+}
+
+$$(".tab").forEach((tab) => tab.addEventListener("click", () => activateTab(tab.dataset.tab)));
+
+$$(".segment").forEach((segment) => segment.addEventListener("click", () => setLeaderboardView(segment.dataset.view)));
+// Left/right arrows move between the two views, as a tablist is expected to.
+$(".segmented").addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  const segments = $$(".segment");
+  const next = segments[(segments.findIndex((item) => item === event.target) + (event.key === "ArrowRight" ? 1 : segments.length - 1)) % segments.length];
+  setLeaderboardView(next.dataset.view);
+  next.focus();
+});
 
 $$("[data-open-player]").forEach((button) => button.addEventListener("click", () => {
   if (!isFirebaseConfigured) return showMessage("Add your Firebase Web config before creating players.", "error");
@@ -339,31 +286,78 @@ $("#team-generator-form").addEventListener("submit", (event) => {
   event.preventDefault();
   try {
     const ids = $$("[data-participant-id]:checked").map((checkbox) => checkbox.dataset.participantId);
-    const result = balanceTeams(ids.map((id) => state.players.find((player) => player.id === id)), { beta: state.fit?.beta ?? 0, session: new Date().toISOString().slice(0, 10) });
-    $("#generated-result").hidden = false;
-    $("#generated-result").innerHTML = `
-      <div class="balance-summary">${result.teamA.length} vs ${result.teamB.length} · Team A ${(result.probabilityA * 100).toFixed(1)}% · Team B ${((1 - result.probabilityA) * 100).toFixed(1)}%${Math.abs(result.sizeEffect) > 1e-9 ? ` · size effect ${(result.sizeEffect * 100).toFixed(1)} points` : " · no team-size effect"}</div>
-      <div class="generated-grid">
-        ${generatedTeamHtml("Team A", result.teamA, result.averageA)}
-        ${generatedTeamHtml("Team B", result.teamB, result.averageB)}
-      </div>`;
+    // Replaces the options on screen outright; nothing generated is ever persisted.
+    state.generatedOptions = teamOptions(
+      ids.map((id) => state.players.find((player) => player.id === id)),
+      { beta: state.fit?.beta ?? 0, limit: TEAM_OPTION_LIMIT },
+    );
+    renderGeneratedOptions();
   } catch (error) {
+    state.generatedOptions = [];
+    $("#generated-result").hidden = true;
     showMessage(error.message, "error");
   }
 });
 
-function generatedTeamHtml(name, players, average) {
-  return `<article class="generated-team">
-    <h2>${name}<span>${Math.round(average)} avg · ${players.length} players</span></h2>
-    <ol>${players.map((player) => `<li>${escapeHtml(player.name)} <span class="muted">(${player.rating})</span></li>`).join("")}</ol>
+const OPTION_LABELS = ["Best balance", "Alternative 2", "Alternative 3"];
+
+function renderGeneratedOptions() {
+  const options = state.generatedOptions;
+  const container = $("#generated-result");
+  container.hidden = options.length === 0;
+  if (!options.length) return (container.innerHTML = "");
+  const first = options[0];
+  const note = options.length === 1
+    ? "One balanced split is possible for this group."
+    : `${options.length} near-optimal splits, best balance first.`;
+  container.innerHTML = `
+    <div class="balance-summary">${first.teamA.length} vs ${first.teamB.length} · ${note}${
+      Math.abs(first.sizeEffect) > 1e-9 ? ` · size effect ${(first.sizeEffect * 100).toFixed(1)} points` : " · no team-size effect"
+    }</div>
+    <div class="team-options">${options.map(generatedOptionHtml).join("")}</div>`;
+}
+
+function generatedOptionHtml(option, index) {
+  const percent = (value) => `${(value * 100).toFixed(1)}%`;
+  return `<article class="team-option${index === 0 ? " is-best" : ""}">
+    <header>
+      <span class="option-label">${OPTION_LABELS[index] ?? `Alternative ${index + 1}`}</span>
+      <span class="option-odds">${percent(option.probabilityA)} / ${percent(1 - option.probabilityA)}</span>
+    </header>
+    <div class="option-teams">
+      ${optionSideHtml("Team A", option.teamA, option.averageA)}
+      ${optionSideHtml("Team B", option.teamB, option.averageB)}
+    </div>
+    <button class="button ${index === 0 ? "button-primary" : "button-secondary"} button-wide" type="button" data-use-option="${index}">Use these teams</button>
   </article>`;
 }
 
-function playerById(id) { return state.rawPlayers.find((player) => player.id === id); }
-
-function playerNames(ids) {
-  return ids.map((id) => playerById(id)?.name || "Unknown player").join(", ");
+function optionSideHtml(name, players, average) {
+  return `<div class="option-side">
+    <h3>${name}<span>${Math.round(average)} avg</span></h3>
+    <p>${players.map((player) => `${escapeHtml(player.name)} <span class="muted">${player.rating}</span>`).join(", ")}</p>
+  </div>`;
 }
+
+/**
+ * Sends a generated split into Record Match as a plain preselection: the checkboxes
+ * the user would have ticked themselves, nothing locked and nothing written. Scores
+ * stay empty, so the match is only created when the real result is entered and saved.
+ */
+$("#generated-result").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-use-option]");
+  if (!button) return;
+  const option = state.generatedOptions[Number(button.dataset.useOption)];
+  if (!option) return;
+  state.teamA = new Set(option.teamA.map((player) => player.id));
+  state.teamB = new Set(option.teamB.map((player) => player.id));
+  $("#score-a").value = "";
+  $("#score-b").value = "";
+  renderPlayerSelectors();
+  activateTab("record");
+  $("#record").scrollIntoView({ block: "start" });
+  showMessage("Teams preselected. Adjust anyone you like, then enter the score to save the match.");
+});
 
 function openPlayerEditor(player) {
   state.editingPlayer = player;
@@ -372,26 +366,9 @@ function openPlayerEditor(player) {
   setTimeout(() => $("#edit-player-name").focus(), 0);
 }
 
-function renderMatchEditor(match) {
-  const a = new Set(matchIds(match, "teamA"));
-  const b = new Set(matchIds(match, "teamB"));
-  const options = state.players.slice().sort((left, right) => left.name.localeCompare(right.name));
-  const option = (player, side) => `<label class="check-option"><input type="checkbox" data-edit-side="${side}" data-edit-player-id="${escapeHtml(player.id)}" ${side === "a" ? (a.has(player.id) ? "checked" : "") : (b.has(player.id) ? "checked" : "")}><span>${escapeHtml(player.name)}</span><small>${player.rating}</small></label>`;
-  $("#edit-match-a-options").innerHTML = options.map((player) => option(player, "a")).join("");
-  $("#edit-match-b-options").innerHTML = options.map((player) => option(player, "b")).join("");
-  $("#edit-score-a").value = match.scoreA;
-  $("#edit-score-b").value = match.scoreB;
-}
-
-function openMatchEditor(match) {
-  state.editingMatch = match;
-  renderMatchEditor(match);
-  $("#edit-match-dialog").showModal();
-}
-
 async function confirmPlayerDeletion(player) {
   const key = `player:${player.id}`;
-  setActionBusy(key, true);
+  store.setPending(key, true);
   try {
     const references = await findMatchReferences(firestoreApi, db, player.id);
     if (references.length) return showMessage("This player cannot be deleted because they appear in recorded matches.", "error");
@@ -401,41 +378,24 @@ async function confirmPlayerDeletion(player) {
   } catch (error) {
     showMessage(error.message, "error");
   } finally {
-    setActionBusy(key, false);
+    store.setPending(key, false);
   }
-}
-
-function openMatchDelete(match) {
-  state.deletingMatch = match;
-  $("#delete-match-copy").textContent = `Delete ${playerNames(matchIds(match, "teamA"))} ${match.scoreA}–${match.scoreB} ${playerNames(matchIds(match, "teamB"))}?`;
-  $("#delete-match-dialog").showModal();
 }
 
 $("#leaderboard-body").addEventListener("click", (event) => {
   const edit = event.target.closest("[data-edit-player]");
   const remove = event.target.closest("[data-delete-player]");
   if (edit) {
-    const player = playerById(edit.dataset.editPlayer);
+    const player = store.playerById(edit.dataset.editPlayer);
     if (player) openPlayerEditor(player); else showMessage("This player was already deleted by another browser.", "error");
   }
   if (remove) {
-    const player = playerById(remove.dataset.deletePlayer);
+    const player = store.playerById(remove.dataset.deletePlayer);
     if (player) confirmPlayerDeletion(player); else showMessage("This player was already deleted by another browser.", "error");
   }
 });
 
-$("#recent-matches").addEventListener("click", (event) => {
-  const edit = event.target.closest("[data-edit-match]");
-  const remove = event.target.closest("[data-delete-match]");
-  if (edit) {
-    const match = state.matches.find((item) => item.id === edit.dataset.editMatch);
-    if (match) openMatchEditor(match); else showMessage("This match was already deleted by another browser.", "error");
-  }
-  if (remove) {
-    const match = state.matches.find((item) => item.id === remove.dataset.deleteMatch);
-    if (match) openMatchDelete(match); else showMessage("This match was already deleted by another browser.", "error");
-  }
-});
+$("#recent-matches").addEventListener("click", matchAdmin.handleListClick);
 
 $("#close-edit-player-dialog").addEventListener("click", () => $("#edit-player-dialog").close());
 onSubmit("edit-player-form", async () => {
@@ -454,38 +414,12 @@ onSubmit("edit-player-form", async () => {
   }
 });
 
-$("#close-edit-match-dialog").addEventListener("click", () => $("#edit-match-dialog").close());
-$("#edit-match-dialog").addEventListener("change", (event) => {
-  const checkbox = event.target.closest("[data-edit-player-id]");
-  if (!checkbox || !checkbox.checked) return;
-  const other = checkbox.dataset.editSide === "a" ? "b" : "a";
-  $$(`[data-edit-side="${other}"][data-edit-player-id="${checkbox.dataset.editPlayerId}"]`).forEach((item) => { item.checked = false; });
-});
-onSubmit("edit-match-form", async () => {
-  const match = state.editingMatch;
-  if (!match) return;
-  const key = `match:${match.id}`;
-  const button = $("#save-match-edit");
-  setBusy(button, true, "Saving…"); setActionBusy(key, true);
-  try {
-    const teamA = $$('[data-edit-side="a"]:checked').map((item) => item.dataset.editPlayerId);
-    const teamB = $$('[data-edit-side="b"]:checked').map((item) => item.dataset.editPlayerId);
-    await editMatch({ api: firestoreApi, db, matchId: match.id, expectedVersion: documentVersion(match), input: { teamA, teamB, scoreA: $("#edit-score-a").value, scoreB: $("#edit-score-b").value } });
-    $("#edit-match-dialog").close();
-    showMessage("Match updated. Ratings and statistics have been rebuilt from complete history.");
-  } catch (error) {
-    showMessage(error.message, "error");
-  } finally {
-    setBusy(button, false); setActionBusy(key, false);
-  }
-});
-
 $("#cancel-delete-player").addEventListener("click", () => $("#delete-player-dialog").close());
 onSubmit("delete-player-form", async () => {
   const player = state.deletingPlayer;
   if (!player) return;
   const key = `player:${player.id}`; const button = $("#confirm-delete-player");
-  setBusy(button, true, "Deleting…"); setActionBusy(key, true);
+  setBusy(button, true, "Deleting…"); store.setPending(key, true);
   try {
     await deleteUnusedPlayer({ api: firestoreApi, db, playerId: player.id, expectedVersion: documentVersion(player) });
     $("#delete-player-dialog").close();
@@ -493,26 +427,11 @@ onSubmit("delete-player-form", async () => {
   } catch (error) {
     showMessage(error.message, "error");
   } finally {
-    setBusy(button, false); setActionBusy(key, false);
+    setBusy(button, false); store.setPending(key, false);
   }
 });
 
-$("#cancel-delete-match").addEventListener("click", () => $("#delete-match-dialog").close());
-onSubmit("delete-match-form", async () => {
-  const match = state.deletingMatch;
-  if (!match) return;
-  const key = `match:${match.id}`; const button = $("#confirm-delete-match");
-  setBusy(button, true, "Deleting…"); setActionBusy(key, true);
-  try {
-    await deleteMatch({ api: firestoreApi, db, matchId: match.id, expectedVersion: documentVersion(match) });
-    $("#delete-match-dialog").close();
-    showMessage("Match deleted. All ratings and statistics have been rebuilt from remaining history.");
-  } catch (error) {
-    showMessage(error.message, "error");
-  } finally {
-    setBusy(button, false); setActionBusy(key, false);
-  }
-});
+store.subscribe(renderAll);
 
 if (!isFirebaseConfigured) {
   connectionStatus.textContent = "Setup required";
@@ -521,8 +440,18 @@ if (!isFirebaseConfigured) {
     `Firebase configuration is incomplete. Add ${missingFirebaseConfigKeys.join(", ")} to js/firebase-config.js; setup details are in README.md.`,
     "error",
   );
-  renderPlayerSelectors();
-  renderLeaderboard();
+  renderAll();
 } else {
-  subscribeToData();
+  store.start({
+    onError: (message) => showMessage(message, "error"),
+    onLive: () => {
+      connectionStatus.textContent = "Live";
+      connectionStatus.className = "connection-status is-online";
+    },
+    onConnectionError: (error) => {
+      connectionStatus.textContent = "Connection error";
+      connectionStatus.className = "connection-status is-error";
+      showMessage(`Firebase error: ${error.message}`, "error");
+    },
+  });
 }

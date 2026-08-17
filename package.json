@@ -11,10 +11,16 @@
     "astro": "astro",
     "test": "node --test public/absolute-ball-knowledge/test/*.test.js",
     "test:rules": "node --test test/firestore-rules.test.js",
-    "check:js": "for f in public/absolute-ball-knowledge/js/*.js public/absolute-ball-knowledge/test/*.test.js test/*.test.js; do node --check \"$f\" || exit 1; done"
+    "test:emulator": "node --test test/match-create.emulator.test.js",
+    "test:e2e": "node --test --test-concurrency=1 test/e2e/*.e2e.test.js",
+    "check:js": "for f in public/absolute-ball-knowledge/js/*.js public/absolute-ball-knowledge/test/*.test.js test/*.test.js test/e2e/*.js; do node --check \"$f\" || exit 1; done"
   },
   "dependencies": {
     "astro": "^4.16.18",
     "gsap": "^3.15.0"
+  },
+  "devDependencies": {
+    "firebase": "^12.16.0",
+    "playwright": "^1.62.0"
   }
 }

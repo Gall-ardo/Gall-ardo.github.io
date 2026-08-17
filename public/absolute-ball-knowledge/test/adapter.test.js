@@ -54,7 +54,7 @@ test("the mock adapter refuses a transactional query read, exactly as the Web SD
 });
 
 test("no client module reads a query inside a transaction", () => {
-  for (const name of ["app.js", "mutations.js"]) {
+  for (const name of ["app.js", "history.js", "match-admin.js", "mutations.js", "store.js"]) {
     const withoutComments = source(name).replace(/\/\*[^]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     assert.equal(/transaction\.get\(\s*\w*[Qq]uery/.test(withoutComments), false, `${name} passes a query to transaction.get`);
   }

@@ -181,6 +181,40 @@ export function balanceTeams(players, options = {}) {
   return { ...selected, topCandidates, exhaustive: ordered.length <= 20, seed };
 }
 
+export const TEAM_OPTION_LIMIT = 3;
+/**
+ * How far from the best split an alternative may sit and still be offered: at most
+ * eight percentage points of predicted win probability, so the worst option shown is
+ * around 58/42 when the best is even. Wider than the 0.025 band `balanceTeams` uses
+ * for its own rotating pick -- that band is tuned for picking one split blindly,
+ * and on real rosters it frequently admits a single candidate -- but still narrow
+ * enough that every alternative is a game worth playing rather than a filler split.
+ */
+export const TEAM_OPTION_TOLERANCE = 0.08;
+
+/**
+ * The distinct near-optimal splits offered on the Create Teams screen, best first.
+ *
+ * This is a view over the candidate list `balanceTeams` already builds -- the same
+ * exhaustive (or, above 20 participants, heuristic) enumeration, the same imbalance
+ * metric, the same near-optimal tolerance and the same orientation de-duplication.
+ * No alternative is invented to reach the limit: when the roster admits fewer
+ * genuinely distinct near-optimal partitions, fewer are returned.
+ *
+ * Entry 0 is the minimum-imbalance candidate. `balanceTeams`'s own seeded pick is
+ * deliberately not used here, because option 1 must be the best split rather than a
+ * rotating one.
+ */
+export function teamOptions(players, options = {}) {
+  const limit = Math.max(1, Math.floor(options.limit ?? TEAM_OPTION_LIMIT));
+  const result = balanceTeams(players, {
+    nearOptimalTolerance: TEAM_OPTION_TOLERANCE,
+    ...options,
+    topK: Math.max(Math.floor(options.topK ?? 6), limit),
+  });
+  return result.topCandidates.slice(0, limit);
+}
+
 export function generatedPlayerRating(theta, config = DEFAULT_MODEL_CONFIG) {
   return displayRating(theta, config);
 }

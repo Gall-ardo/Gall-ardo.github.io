@@ -9,6 +9,22 @@ Firestore is the source of truth. Player ratings, games, wins, and losses are ne
 - Editing a match preserves its document ID and `createdAt`, writes `updatedAt`, validates current player documents in a transaction, and triggers a complete ratings/statistics rebuild. Deleting a match rebuilds from the remaining history.
 - A match edit never rewrites `modelVersion`. Re-sending it would add the field to any document that predates it, which the security rules reject as an unexpected field change.
 
+## Create Teams
+
+Generating teams shows up to three splits, best balance first: `teamOptions` in `js/logic.js` is a view over the candidate list `balanceTeams` already builds, so there is one balancer, one imbalance metric and one enumeration. Option 1 is the minimum-imbalance partition; the alternatives are the next candidates within `TEAM_OPTION_TOLERANCE` (0.08 of predicted win probability) of it, and a group that admits fewer distinct near-optimal partitions simply shows fewer. A partition and its Team A/Team B mirror are the same option unless the orientation genuinely changes the prediction, which needs both an odd participant count and a non-zero size effect.
+
+`Use these teams` switches to Record Match and ticks the corresponding checkboxes, nothing more: scores stay empty, no match is created, and the selection is ordinary form state the user can add to, remove from or move between sides before saving. The generated options live only in `state.generatedOptions` in `js/app.js`; generating replaces them and never writes to Firestore.
+
+## Match list and rating history
+
+The Leaderboard panel is one switchable section, never a vertical stack: a `Table | Rating History` segmented control shows exactly one of the numeric table and the chart, defaulting to the table. The choice is local UI state in `js/app.js` — nothing is persisted, and neither view changes what is computed. The hidden view stays in the DOM, so switching back is a visibility flip rather than a re-render.
+
+The main page renders only the five newest matches, with the count and a `Show all` link beside the "Recent matches" heading; `history/` renders all of them, newest first, with the same edit and delete actions and a `← Back to the app` link above the card. There is no pagination and no "Show more" anywhere. That is a render-time slice in `js/match-list.js`, not a narrower Firestore query: `js/store.js` subscribes to both collections whole, with no `limit()` and no pagination anywhere, because the leaderboard, the team generator, the match preview and the rating history are only correct when they are fitted from the complete recorded history. Both pages share one store, one match-row renderer and one match editor (`js/match-admin.js` creates the dialogs, so the two pages cannot drift apart).
+
+`js/rating-history.js` reconstructs the Rating History chart by re-running the same `score_logistic_v1` fit over each growing prefix of the canonical history — matches ordered by `createdAt` with the document ID as the deterministic tie-breaker — and converting each theta with the usual `round(1000 + ratingScale * theta)`. Point 0 is the pre-history baseline of 1000 for everybody, and the last point is fitted from every match, so it is exactly the rating the leaderboard shows. Nothing is approximated from Elo deltas, current ratings or stored legacy fields: the model is a regularised joint fit, so one match moves every player's theta and there is no per-match delta to accumulate.
+
+That costs one fit per match, so `js/store.js` memoises the reconstruction against a revision counter that changes only when a players or matches snapshot arrives. Re-renders — a tab switch, a view switch, a resize, a row going busy — reuse the cached fits, and `js/rating-chart.js` redraws only when the data, the visible set or the container width actually changed. A hidden container has no width, so the chart skips those passes entirely rather than invalidating its signature; returning to it at an unchanged width and snapshot is a no-op. The chart is hand-drawn SVG with no chart library: a CDN bundle would be the page's only third-party runtime, and the browser end-to-end run blocks every host but loopback and the Firebase CDN. Lines are keyed and coloured by player ID, never by name, so renaming a player relabels the chart and both history views without rewriting a single match document.
+
 ## Concurrency
 
 The Firestore Web SDK's `DocumentSnapshot` carries no document version — `updateTime` exists only on the Admin SDK — so every edit and delete uses the `updatedAt` the client itself writes as its optimistic-concurrency token, falling back to `createdAt` for documents written before `updatedAt` existed. A document with neither is unguarded and the mutation proceeds. A mutation whose token no longer matches is refused with "This record changed in another browser."
@@ -52,5 +68,15 @@ npm run test:rules
 ```
 
 The suite fails closed rather than skipping: it refuses a non-loopback host and a project ID without the `demo-` prefix, uploads the repository's own `firestore.rules` on every run, and throws if the emulator is unreachable.
+
+Two further suites cover recording a match, which `npm test` cannot reach: the mock applies no security rules, and `test:rules` posts hand-encoded documents without running client code.
+
+```
+firebase emulators:start --only firestore --project demo-abk
+npm run test:emulator   # match creation through the real Firebase Web SDK
+npm run build && npm run test:e2e   # the built site in Playwright Chromium
+```
+
+`test:emulator` drives the same `runTransaction` and `serverTimestamp()` path `saveMatch` takes and checks the result against `firestore.rules`. `test:e2e` loads the built site with `?emulator=1`, records matches through the UI, and asserts the exact Firestore commit the browser sends; a second suite covers the latest-five list, the history page and the Rating History chart, including that the chart's last point equals the leaderboard rating. In-app links carry `?mock=1` and `?emulator=1` across navigations, so opening the history page from a local run never switches that page to real Firestore. Both fail closed on the same terms as `test:rules`, and the browser run additionally aborts every request to a host other than loopback and the SDK CDN, so a regression that bypassed `connectFirestoreEmulator` would fail the run instead of reaching production. `test:e2e` needs `npx playwright install chromium` once.
 
 `firestore.rules` is local only. Review and publish it manually with your normal Firebase release process; this repository change does not publish rules.

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173d36">
+    <meta name="description" content="The complete Absolute Ball Knowledge match history, newest first.">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>Match history · Absolute Ball Knowledge</title>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="../" data-app-link aria-label="Absolute Ball Knowledge home">
+          <span class="brand-mark" aria-hidden="true">ABK</span>
+          <span>
+            <strong>Absolute Ball Knowledge</strong>
+            <small>Office foosball, settled properly.</small>
+          </span>
+        </a>
+        <span id="connection-status" class="connection-status" role="status">Connecting…</span>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <p class="breadcrumb"><a class="back-link" href="../" data-app-link><span aria-hidden="true">←</span> Back to the app</a></p>
+
+      <div id="global-message" class="message" role="status" aria-live="polite" hidden></div>
+
+      <section class="panel" aria-labelledby="history-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Every result</p>
+            <h1 id="history-title">Match history</h1>
+          </div>
+        </div>
+        <div class="subsection-title">
+          <h2>All matches</h2>
+          <div class="subsection-meta">
+            <span id="history-count" class="muted">Loading…</span>
+          </div>
+        </div>
+        <p class="view-note">The complete recorded history, newest first. Ratings everywhere in the app are always fitted from all of it.</p>
+        <div id="full-history" class="match-list">
+          <div class="empty-state">Matches will appear here once Firestore is connected.</div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Powered by shared Firestore data · No account required</p>
+    </footer>
+
+    <noscript>This app requires JavaScript to connect to Firestore.</noscript>
+    <script type="module" src="../js/history.js"></script>
+  </body>
+</html>
