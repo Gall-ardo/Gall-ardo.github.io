@@ -17,10 +17,10 @@ export const experience: Experience[] = [
     org: 'EML Group — TUM & Helmholtz',
     orgUrl: 'https://www.eml-munich.de/',
     role: 'Research Intern',
-    period: 'February 2026 – Present',
+    period: 'June 2026 – Present',
     advisors: [{ name: 'Prof. Zeynep Akata', url: 'https://www.eml-munich.de/people/zeynep-akata' }],
     description:
-      'Training Sparse Autoencoders on vision-language models to extract interpretable features, and examining whether societal harm benchmarks capture real-world harm or rely on narrow proxies like refusal rates and stereotypical MCQ selection.',
+      'Working on social bias and fairness in multimodal models, with a focus on benchmarking and large-scale evaluation.',
   },
   {
     org: 'HUCVL',
