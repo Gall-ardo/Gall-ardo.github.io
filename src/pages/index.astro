@@ -47,7 +47,19 @@ import { education } from '../data/education';
                   </span>
                 )}
               </div>
-              <div class="exp-desc">{e.description}</div>
+              {e.description && (
+                <div class="exp-desc">
+                  {e.description.includes('\n') ? (
+                    <ul style="list-style-type: disc; padding-left: 1.25rem; margin: 0;">
+                      {e.description.split('\n').map((bullet) => (
+                        <li>{bullet}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    e.description
+                  )}
+                </div>
+              )}
             </div>
           ))
         }

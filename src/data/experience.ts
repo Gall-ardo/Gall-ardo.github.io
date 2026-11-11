@@ -9,7 +9,7 @@ export type Experience = {
   role: string;
   period: string;
   advisors?: Advisor[];
-  description: string;
+  description?: string;
 };
 
 export const experience: Experience[] = [
@@ -18,9 +18,6 @@ export const experience: Experience[] = [
     orgUrl: 'https://www.bekventures.com/',
     role: 'Analyst Intern',
     period: 'August 2026 – Present',
-    description:
-      'Conduct investment research and due diligence on technology companies, assessing markets, business models, traction, funding, and founding teams. ' +
-      'Research startups and technology ecosystems across Europe to support sourcing, company screening, and investment analysis.',
   },
   {
     org: 'EML Group — TUM & Helmholtz',
